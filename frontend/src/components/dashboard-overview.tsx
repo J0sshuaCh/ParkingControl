@@ -1,35 +1,35 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-// import { Car, ParkingCircle, TrendingUp, AlertCircle } from "lucide-react"
+ import { Car, ParkingCircle, TrendingUp, AlertCircle } from "lucide-react"
 
 export function DashboardOverview() {
   const stats = [
     {
       title: "Vehículos Dentro",
       value: "24",
-     //  icon: Car,
+      icon: Car,
       color: "bg-blue-100 text-blue-600",
       trend: "+2 esta hora",
     },
     {
       title: "Espacios Libres",
       value: "16",
-     //  icon: ParkingCircle,
+      icon: ParkingCircle,
       color: "bg-green-100 text-green-600",
       trend: "Disponibles",
     },
     {
       title: "Ingresos Hoy",
       value: "S/. 1,240",
-    //   icon: TrendingUp,
+      icon: TrendingUp,
       color: "bg-purple-100 text-purple-600",
       trend: "+15% vs ayer",
     },
     {
       title: "Alertas",
       value: "2",
-    //   icon: AlertCircle,
+      icon: AlertCircle,
       color: "bg-orange-100 text-orange-600",
       trend: "Requieren atención",
     },
@@ -45,7 +45,7 @@ export function DashboardOverview() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => {
-          // const Icon = stat.icon
+           const Icon = stat.icon
           return (
             <Card
               key={index}
@@ -58,7 +58,7 @@ export function DashboardOverview() {
                   <p className="text-xs text-muted-foreground mt-2">{stat.trend}</p>
                 </div>
                 <div className={`p-3 rounded-lg ${stat.color} group-hover:scale-110 transition-smooth`}>
-                  {/* <Icon className="w-6 h-6" /> */}
+                  <Icon className="w-6 h-6" />
                 </div>
               </div>
             </Card>

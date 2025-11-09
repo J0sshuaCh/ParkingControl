@@ -10,10 +10,28 @@ interface LoginProps {
   onLogin: (name: string) => void
 }
 
-// ✅ PasswordInput separado del componente Login
 function PasswordInput({ value, onChange, disabled }: any) {
   const [show, setShow] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const toggleShow = () => {
+    if (!inputRef.current) return
+
+    const input = inputRef.current
+    // Guardamos la posición del cursor
+    const start = input.selectionStart
+    const end = input.selectionEnd
+
+    setShow((prev) => !prev)
+
+    // Volvemos a aplicar el foco y posición del cursor
+    setTimeout(() => {
+      input.focus()
+      if (start !== null && end !== null) {
+        input.setSelectionRange(start, end)
+      }
+    }, 0)
+  }
 
   return (
     <div className="relative w-full">
@@ -28,12 +46,9 @@ function PasswordInput({ value, onChange, disabled }: any) {
       />
       <button
         type="button"
-        onClick={() => {
-          setShow(!show)
-          inputRef.current?.focus() // mantiene el foco
-        }}
+        onClick={toggleShow}
         className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-        tabIndex={-1}
+        tabIndex={-1} // no quita el foco
       >
         {show ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
       </button>

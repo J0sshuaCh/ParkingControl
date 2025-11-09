@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, type Dispatch, type SetStateAction } from "react"
-import Sidebar from "./sidebar"
-import Header from "./header"
+import { Sidebar } from "./sidebar"
+import {Header} from "./header"
 
 import  { DashboardOverview }  from "./dashboard-overview"
- // import { VehicleRegistration } from "./modules/vehicle-registration"
+ import { VehicleRegistration } from "./modules/vehicle-registration"
  // import { ExitAndBilling } from "./modules/exit-and-billing"
  // import { SpaceManagement } from "./modules/space-management"
  // import { Administration } from "./modules/administration"
@@ -30,8 +30,8 @@ export function Dashboard({ userName, onLogout }: DashboardProps) {
     switch (activeModule) {
        case "overview":
          return <DashboardOverview />
-    //   case "vehicles":
-    //     return <VehicleRegistration />
+       case "vehicles":
+         return <VehicleRegistration />
     //   case "billing":
     //     return <ExitAndBilling />
     //   case "spaces":
@@ -51,7 +51,7 @@ export function Dashboard({ userName, onLogout }: DashboardProps) {
     <div className="flex h-screen bg-background">
       <SidebarTyped activeModule={activeModule} onModuleChange={setActiveModule} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* <Header userName={userName} onLogout={onLogout} /> */}
+        <Header userName={userName} onLogout={onLogout} />
         <main className="flex-1 overflow-auto bg-muted/30 p-6 animate-fade-in">{renderModule()}</main>
       </div>
     </div>
