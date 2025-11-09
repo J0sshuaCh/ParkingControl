@@ -45,7 +45,7 @@ export function Sidebar({ activeModule, onModuleChange }: SidebarProps) {
               className={`w-full justify-start gap-3 transition-smooth ${
                 isActive
                   ? "bg-primary text-white shadow-md"
-                  : "text-gray-800 hover:bg-gray-100"
+                  : "text-gray-800 hover:bg-gray-200 hover:text-gray-800"
               }`}
             >
               <Icon className="w-5 h-5" />
