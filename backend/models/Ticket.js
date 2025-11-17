@@ -1,12 +1,18 @@
 export class Ticket {
-  constructor({ id_ticket, hora_ingreso, espacio_id}) {
+  constructor({ codigo_ticket, hora_entrada, id_vehiculo, id_espacio}) {
     this.id_ticket = id_ticket;
-    this.hora_ingreso = hora_ingreso;
+    this.codigo_ticket = codigo_ticket;
+    this.hora_entrada = hora_entrada;
     this.hora_salida = null;
-    this.monto_calculado = 0.0;
+    //tiempo_permanencia se puede calcular con calcularDuracion, no es necesario almacenarlo
+    this.monto_total = 0.0;
     this.estado = EstadoTicket.EMITIDO; // Se inicializa a EMITIDO
-    this.espacio_id = espacio_id;
-    this.vehiculo_placa = '';
+    //fecha_emision es equivalente a hora_entrada
+    this.id_vehiculo = id_vehiculo;
+    this.id_espacio = id_espacio;
+    this.id_usuario_entrada = 1; //TODO: Cambiar cuando haya un modulo de usuarios
+    this.id_usuario_salida = null;
+    this.id_tarifa = null;
   }
 
   /**
@@ -16,11 +22,13 @@ export class Ticket {
      * @param {Date} hora - La hora de ingreso.
      */
     emitir(v, e, hora) {
+        this.codigo_ticket = this.id_ticket; // NOTE: Asumiendo temporalmente que el ID del ticket es el código
         this.hora_entrada = hora;
         this.estado = EstadoTicket.EMITIDO;
-        this.espacioID = e.id_espacio;
+        this.id_vehiculo = v.id_vehiculo;
+        this.id_espacio = e.id_espacio;
         
-        this.vehiculo_placa = v.placa;
+        this.id_tarifa = 1; //TODO: Crear lógica para asignar tarifa según vehículo/fecha
         console.log(`Ticket ${this.id} emitido. Vehículo: ${v.placa}, Espacio ID: ${e.id_espacio}`);
     }
 
@@ -29,13 +37,13 @@ export class Ticket {
      * @returns {number} Duración en minutos.
      */
     calcularDuracion() {
-        if (!this.hora_salida || !this.hora_ingreso) {
+        if (!this.hora_salida || !this.hora_entrada) {
             console.error("No se puede calcular la duración: Falta hora de ingreso o salida.");
             return 0;
         }
         
         // Calcula la diferencia en milisegundos y la convierte a minutos (dividiendo por 60000)
-        const diffMs = this.hora_salida.getTime() - this.hora_ingreso.getTime();
+        const diffMs = this.hora_salida.getTime() - this.hora_entrada.getTime();
         const duracionMinutos = diffMs / 60000;
         
         // Redondea al minuto más cercano (como en el código Python)
@@ -46,15 +54,11 @@ export class Ticket {
      * Registra la hora de salida del vehículo.
      * @param {Date} hora - La hora de salida.
      */
-    registrar_salida(hora) {
-        this.hora_salida = hora;
+    registrar_salida() {
+        this.hora_salida = new Date();
         console.log(`Hora de salida registrada: ${hora.toLocaleTimeString()}`);
     }
 
-    /**
-     * Consolida el cobro, calculando el monto total y cambiando el estado a COBRADO.
-     * El parámetro 'monto' de Python no se usa, ya que la lógica de cálculo está aquí.
-     */
     consolidar_cobro() {
         if (this.estado !== EstadoTicket.EMITIDO) {
             console.error("No se puede consolidar el cobro: El ticket no está EMITIDO.");
@@ -63,9 +67,9 @@ export class Ticket {
 
         const duracion = this.calcularDuracion();
         // Llama al método estático de PrecioParqueo para obtener la tarifa por minuto
-        const tarifaMinuto = PrecioParqueo.getPrecioParqueo(); 
+        const tarifaHora = 2.0 //TODO: tarifaHora debe tomar el valor actual de la tarifa según id_tarifa
         
-        this.monto_cobrado = duracion * tarifaMinuto;
+        this.monto_cobrado = duracion * tarifaHora;
         this.estado = EstadoTicket.COBRADO;
         
         console.log(`Cobro consolidado. Duración: ${duracion} min. Monto: $${this.monto_cobrado.toFixed(2)}.`);
