@@ -94,12 +94,14 @@ DEFAULT CHARACTER SET = utf8mb3;
 -- Table `parkingcontrol_db`.`reserva`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `parkingcontrol_db`.`reserva` (
-  `id_reserva` INT NOT NULL,
+ `id_reserva` INT NOT NULL,
+  `motivo` VARCHAR(255) NULL DEFAULT NULL,
+  `duracion` VARCHAR(100) NULL DEFAULT NULL,
+  `id_espacio` INT NOT NULL,
+  `id_usuario_creador` INT NOT NULL,
   `fecha_inicio` DATETIME NOT NULL,
   `fecha_fin` DATETIME NOT NULL,
   `estado` ENUM('Activa', 'Ejecutada') NULL DEFAULT NULL,
-  `id_espacio` INT NOT NULL,
-  `id_usuario_creador` INT NOT NULL,
   PRIMARY KEY (`id_reserva`),
   INDEX `id_reserva_espacio_idx` (`id_espacio` ASC) VISIBLE,
   INDEX `id_reserva_usuario_idx` (`id_usuario_creador` ASC) VISIBLE,
