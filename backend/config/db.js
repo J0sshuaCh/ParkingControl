@@ -1,11 +1,14 @@
-import mysql from 'mysql2/promise';
+//import mysql from 'mysql2/promise';
+const mysql = require('mysql2/promise');
 
-export const db = mysql.createPool({
+const db = mysql.createPool({
   host: 'localhost',
   user: 'root',
   password: '',
   database: 'parkingcontrol_db'
 });
+
+module.exports = db;
 
 //// /backend/config/db.js
 //
