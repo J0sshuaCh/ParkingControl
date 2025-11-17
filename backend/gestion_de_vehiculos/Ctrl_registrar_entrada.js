@@ -12,7 +12,13 @@ class CtrlRegistrarEntrada {
         const t = new Ticket(v.placa, e.codigo); 
         
         // Emite el ticket con los datos del vehículo, espacio y hora
-        t.emitir(v, e, hora); 
+        t.emitir(v, e, hora);
+
+        e.ocupar();
+
+        this.marcar_ocupado(e.id_espacio);
+
+        this.guardar(t);
         
         return t;
     }
@@ -31,7 +37,7 @@ class CtrlRegistrarEntrada {
         // TODO: Lógica para devolver un espacio vacío (se podría llamar a buscar_libres y seleccionar uno)
         
         // Ejemplo simple (Hardcodeado como en el código Python)
-        const e = new Espacio(1, "A1", 2);
+        const e = new Espacio({id_espacio:1, codigo:"A1", numero_espacio:2});
         console.log(`  -> Espacio asignado: ${e.codigo}`);
         return e;
     }

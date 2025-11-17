@@ -19,6 +19,7 @@ export class Ticket {
         this.hora_entrada = hora;
         this.estado = EstadoTicket.EMITIDO;
         this.espacioID = e.id_espacio;
+        
         this.vehiculo_placa = v.placa;
         console.log(`Ticket ${this.id} emitido. Vehículo: ${v.placa}, Espacio ID: ${e.id_espacio}`);
     }
