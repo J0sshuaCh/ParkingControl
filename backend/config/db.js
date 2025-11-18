@@ -1,31 +1,43 @@
-// /backend/config/db.js
+//import mysql from 'mysql2/promise';
+const mysql = require('mysql2/promise');
 
-const { Sequelize } = require('sequelize');
-require('dotenv').config(); // Carga las variables de .env
-
-// Lee las variables de entorno
-const dbName = process.env.DB_NAME;
-const dbUser = process.env.DB_USER;
-const dbPass = process.env.DB_PASS;
-const dbHost = process.env.DB_HOST;
-
-// Crea la instancia de Sequelize
-const sequelize = new Sequelize(dbName, dbUser, dbPass, {
-  host: dbHost,
-  dialect: 'mysql'
+const db = mysql.createPool({
+  host: 'localhost',
+  user: 'root',
+  password: '',
+  database: 'parkingcontrol_db'
 });
 
-// Función para probar la conexión
-async function testConnection() {
-  try {
-    await sequelize.authenticate();
-    console.log('✅ Conexión a MySQL establecida exitosamente.');
-  } catch (error) {
-    console.error('❌ No se pudo conectar a la base de datos:', error);
-  }
-}
+module.exports = db;
 
-// Llama a la función de prueba
-testConnection();
-
-module.exports = sequelize;
+//// /backend/config/db.js
+//
+//const { Sequelize } = require('sequelize');
+//require('dotenv').config(); // Carga las variables de .env
+//
+//// Lee las variables de entorno
+//const dbName = process.env.DB_NAME;
+//const dbUser = process.env.DB_USER;
+//const dbPass = process.env.DB_PASS;
+//const dbHost = process.env.DB_HOST;
+//
+//// Crea la instancia de Sequelize
+//const sequelize = new Sequelize(dbName, dbUser, dbPass, {
+//  host: dbHost,
+//  dialect: 'mysql'
+//});
+//
+//// Función para probar la conexión
+//async function testConnection() {
+//  try {
+//    await sequelize.authenticate();
+//    console.log('✅ Conexión a MySQL establecida exitosamente.');
+//  } catch (error) {
+//    console.error('❌ No se pudo conectar a la base de datos:', error);
+//  }
+//}
+//
+//// Llama a la función de prueba
+//testConnection();
+//
+//module.exports = sequelize;
