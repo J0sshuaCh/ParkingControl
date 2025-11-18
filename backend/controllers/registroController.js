@@ -1,6 +1,6 @@
-import { db } from '../config/db.js';
-import { asignarEspacioDisponible } from '../services/asignacionService.js';
+import db from '../config/db.js';
 import { v4 as uuidv4 } from 'uuid';
+import { asignarEspacioDisponible } from '../services/asignacionService.js';
 
 // HU1: Registrar entrada de vehículo
 export const registrarEntrada = async (req, res) => {
@@ -39,6 +39,9 @@ export const registrarEntrada = async (req, res) => {
        VALUES (?, NOW(), ?, ?, ?, 'Emitido', NOW())`,
       [codigo, idVehiculo, espacio.id_espacio, id_usuario]
     );
+    
+    // Marcar el espacio como Ocupado
+    await db.query("UPDATE espacio SET estado = 'Ocupado' WHERE id_espacio = ?", [espacio.id_espacio]);
 
     res.status(201).json({ msg: 'Entrada registrada', codigo_ticket: codigo, espacio_asignado: espacio.numero_espacio });
   } catch (error) {
@@ -51,10 +54,11 @@ export const registrarEntrada = async (req, res) => {
 export const listarIngresos = async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT t.codigo_ticket, v.placa, v.tipo_vehiculo, t.hora_entrada, e.numero_espacio
+      SELECT t.id_ticket, t.codigo_ticket, v.placa, v.tipo_vehiculo, t.hora_entrada, e.numero_espacio
       FROM ticket t
       JOIN vehiculos v ON t.id_vehiculo = v.id_vehiculo
       JOIN espacio e ON t.id_espacio = e.id_espacio
+      WHERE t.estado = 'Emitido'
       ORDER BY t.hora_entrada DESC LIMIT 20`);
     res.json(rows);
   } catch (error) {

@@ -1,8 +1,12 @@
-import express from 'express';
+import { Router } from 'express';
 import { registrarEntrada, listarIngresos } from '../controllers/registroController.js';
-const router = express.Router();
 
-router.post('/entrada', registrarEntrada);
+const router = Router();
+
+// POST /api/tickets/registrar
+router.post('/registrar', registrarEntrada);
+
+// GET /api/tickets/ingresos
 router.get('/ingresos', listarIngresos);
 
 export default router;

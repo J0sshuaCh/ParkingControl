@@ -12,52 +12,23 @@ import {
   X,
   AlertTriangle,
   Map,
+  Loader2, // Icono de carga
 } from "lucide-react"
+// Importamos los servicios de la API (ruta corregida usando el alias @)
+import { getEspacios, reservarEspacio } from "../../services/espacioService"
 
 // --- TIPOS DE DATOS ---
 
-// Definimos el estado de un espacio
-type SpaceStatus = "libre" | "ocupado" | "reservado"
+// Esta interfaz AHORA debe coincidir con la respuesta de tu API
+type SpaceStatus = "Libre" | "Ocupado" | "Reservado" | "Mantenimiento"; // Ajusta a tus ENUMs
 
-// Definimos la estructura de un espacio de estacionamiento
 interface Space {
-  id: string // Ej: "A-01"
-  status: SpaceStatus
-  vehiclePlate?: string // Placa del vehículo si está ocupado
-  reservedFor?: string // Motivo de la reserva
-  reservedUntil?: string // Duración de la reserva
-}
-
-// --- DATOS DE EJEMPLO (MOCK) ---
-
-// Generamos una lista inicial de 30 espacios
-const initialSpaces: Space[] = [
-  ...Array.from({ length: 10 }, (_, i) => ({
-    id: `A-${String(i + 1).padStart(2, "0")}`,
-    status: "libre" as SpaceStatus,
-  })),
-  ...Array.from({ length: 10 }, (_, i) => ({
-    id: `B-${String(i + 1).padStart(2, "0")}`,
-    status: "libre" as SpaceStatus,
-  })),
-  ...Array.from({ length: 10 }, (_, i) => ({
-    id: `C-${String(i + 1).padStart(2, "0")}`,
-    status: "libre" as SpaceStatus,
-  })),
-  ...Array.from({ length: 10 }, (_, i) => ({
-    id: `D-${String(i + 1).padStart(2, "0")}`,
-    status: "libre" as SpaceStatus,
-  })),
-]
-
-// Pre-poblamos algunos espacios para el demo
-initialSpaces[1] = { id: "A-02", status: "ocupado", vehiclePlate: "ABC-123" }
-initialSpaces[2] = { id: "A-03", status: "ocupado", vehiclePlate: "XYZ-789" }
-initialSpaces[12] = {
-  id: "B-03",
-  status: "reservado",
-  reservedFor: "Mantenimiento",
-  reservedUntil: "2 horas",
+  id_espacio: number;       // El ID real de la BD (PK)
+  id: string;             // El número de espacio (ej: "A-01")
+  status: SpaceStatus;
+  vehiclePlate?: string;  // Placa si está ocupado
+  reservedFor?: string;   // Motivo de la reserva
+  reservedUntil?: string; // Duración de la reserva
 }
 
 // --- COMPONENTE MODAL DE RESERVA (para HU8) ---
@@ -65,10 +36,11 @@ initialSpaces[12] = {
 interface ReserveModalProps {
   space: Space | null
   onClose: () => void
-  onConfirm: (spaceId: string, reason: string, duration: string) => void
+  onConfirm: (id_espacio: number, reason: string, duration: string) => void
+  loading: boolean;
 }
 
-function ReserveModal({ space, onClose, onConfirm }: ReserveModalProps) {
+function ReserveModal({ space, onClose, onConfirm, loading }: ReserveModalProps) {
   const [reason, setReason] = useState("")
   const [duration, setDuration] = useState("")
 
@@ -76,11 +48,9 @@ function ReserveModal({ space, onClose, onConfirm }: ReserveModalProps) {
 
   const handleConfirm = () => {
     if (reason && duration) {
-      onConfirm(space.id, reason, duration)
-      onClose() // Cierra el modal después de confirmar
+      // Pasamos el ID numérico (id_espacio) al manejador
+      onConfirm(space.id_espacio, reason, duration)
     } else {
-      // Reemplazamos alert() con un feedback más integrado si es posible
-      // Por ahora, un simple alert() como en tu componente de registro
       alert("Por favor, ingrese el motivo y la duración.")
     }
   }
@@ -90,7 +60,7 @@ function ReserveModal({ space, onClose, onConfirm }: ReserveModalProps) {
       <Card className="w-full max-w-md bg-card border border-border p-6 animate-slide-up">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Reservar Espacio: {space.id}</h2>
-          <Button variant="ghost" size="sm" onClick={onClose}>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={loading}>
             <X className="w-4 h-4" />
           </Button>
         </div>
@@ -102,6 +72,7 @@ function ReserveModal({ space, onClose, onConfirm }: ReserveModalProps) {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="bg-input border-border"
+              disabled={loading}
             />
           </div>
           <div>
@@ -111,19 +82,22 @@ function ReserveModal({ space, onClose, onConfirm }: ReserveModalProps) {
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
               className="bg-input border-border"
+              disabled={loading}
             />
           </div>
           <div className="flex gap-2 mt-6">
             <Button
               onClick={handleConfirm}
               className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={loading}
             >
-              Confirmar Reserva
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar Reserva"}
             </Button>
             <Button
               onClick={onClose}
               variant="outline"
               className="flex-1 bg-transparent"
+              disabled={loading}
             >
               Cancelar
             </Button>
@@ -135,7 +109,7 @@ function ReserveModal({ space, onClose, onConfirm }: ReserveModalProps) {
 }
 
 // --- COMPONENTE ALERTA DE CAPACIDAD (para HU9) ---
-
+// (Este componente no cambia, sigue siendo igual que antes)
 interface CapacityAlertProps {
   show: boolean
   onClose: () => void
@@ -143,7 +117,6 @@ interface CapacityAlertProps {
 
 function CapacityAlert({ show, onClose }: CapacityAlertProps) {
   if (!show) return null
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md bg-destructive border-destructive p-6 animate-slide-up">
@@ -152,12 +125,7 @@ function CapacityAlert({ show, onClose }: CapacityAlertProps) {
             <AlertTriangle className="w-6 h-6 mr-2" />
             ¡Capacidad Máxima!
           </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="text-destructive-foreground hover:bg-destructive/80"
-          >
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-destructive-foreground hover:bg-destructive/80">
             <X className="w-4 h-4" />
           </Button>
         </div>
@@ -165,10 +133,7 @@ function CapacityAlert({ show, onClose }: CapacityAlertProps) {
           El estacionamiento ha llegado al 100% de su capacidad. No se pueden
           registrar nuevas entradas hasta que se liberen espacios.
         </p>
-        <Button
-          onClick={onClose}
-          className="w-full bg-destructive-foreground text-destructive hover:bg-destructive-foreground/90"
-        >
+        <Button onClick={onClose} className="w-full bg-destructive-foreground text-destructive hover:bg-destructive-foreground/90">
           Entendido
         </Button>
       </Card>
@@ -178,18 +143,48 @@ function CapacityAlert({ show, onClose }: CapacityAlertProps) {
 
 // --- COMPONENTE PRINCIPAL: GESTIÓN DE ESPACIOS ---
 
-export function SpaceManagement() {
-  const [spaces, setSpaces] = useState<Space[]>(initialSpaces)
+export function SpaceManagement() { // Renombrado a SpaceManagement
+  // El estado de los espacios ahora se inicializa vacío
+  const [spaces, setSpaces] = useState<Space[]>([])
   const [modalSpace, setModalSpace] = useState<Space | null>(null)
   const [showAlert, setShowAlert] = useState(false)
+  
+  // Estados para Carga y Errores
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Estado de carga para el modal
+  const [modalLoading, setModalLoading] = useState(false);
+
+  // --- Carga de Datos (HU7) ---
+  const fetchSpaces = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getEspacios();
+      // Asegúrate que los status de la BD coincidan con "libre", "ocupado", "reservado"
+      setSpaces(data);
+    } catch (err) {
+      setError("No se pudieron cargar los espacios. Intente de nuevo.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // useEffect para llamar a fetchSpaces() solo una vez, al montar el componente
+  useEffect(() => {
+    fetchSpaces();
+  }, []);
 
   // --- Cálculos de Estadísticas (HU7) ---
-  // useMemo optimiza para que no se recalcule en cada render
   const stats = useMemo(() => {
     const total = spaces.length
-    const occupied = spaces.filter((s) => s.status === "ocupado").length
-    const reserved = spaces.filter((s) => s.status === "reservado").length
-    const free = total - occupied - reserved
+    if (total === 0) return { total: 0, occupied: 0, reserved: 0, free: 0, capacityPercent: 0 };
+    
+    const occupied = spaces.filter((s) => s.status === "Ocupado").length
+    const reserved = spaces.filter((s) => s.status === "Reservado").length
+    const free = spaces.filter((s) => s.status === "Libre").length
     const capacityPercent = total > 0 ? Math.round(((occupied + reserved) / total) * 100) : 0
 
     return { total, occupied, reserved, free, capacityPercent }
@@ -198,91 +193,103 @@ export function SpaceManagement() {
   // --- Efecto para Alerta de Capacidad (HU9) ---
   useEffect(() => {
     if (stats.capacityPercent === 100) {
-      setShowAlert(true)
-      // Aquí se podría agregar un efecto de sonido si se desea
+      setShowAlert(true);
     } else {
-      setShowAlert(false)
+      setShowAlert(false);
     }
   }, [stats.capacityPercent])
 
   // --- Manejadores de Eventos ---
 
   // Manejador para reservar (HU8)
-  const handleConfirmReservation = (
-    spaceId: string,
+  const handleConfirmReservation = async (
+    id_espacio: number,
     reason: string,
     duration: string,
   ) => {
-    setSpaces((prevSpaces) =>
-      prevSpaces.map((space) =>
-        space.id === spaceId
-          ? {
-              ...space,
-              status: "reservado",
-              reservedFor: reason,
-              reservedUntil: duration,
-              vehiclePlate: undefined, // Limpiar placa si la había
-            }
-          : space,
-      ),
-    )
-    setModalSpace(null)
-  }
+    setModalLoading(true);
+    try {
+      // Debes obtener el id_usuario de tu sistema de autenticación (ej: un Context)
+      const mock_id_usuario = "1"; // ¡REEMPLAZAR ESTO!
 
-  // Manejador para cancelar una reserva (lógica extra)
-  const handleCancelReservation = (spaceId: string) => {
-    setSpaces((prevSpaces) =>
-      prevSpaces.map((space) =>
-        space.id === spaceId
-          ? {
-              ...space,
-              status: "libre",
-              reservedFor: undefined,
-              reservedUntil: undefined,
-            }
-          : space,
-      ),
-    )
+      await reservarEspacio(id_espacio, {
+        motivo: reason,
+        duracion: duration,
+        id_usuario: mock_id_usuario 
+      });
+
+      // Si la reserva fue exitosa, cerramos el modal y recargamos los datos
+      setModalSpace(null);
+      fetchSpaces(); // Recargamos el mapa para mostrar el estado actualizado
+      
+    } catch (err) {
+      console.error(err);
+      alert("Error al reservar el espacio. Es posible que ya no esté libre.");
+    } finally {
+      setModalLoading(false);
+    }
   }
 
   // Manejador para clic en un espacio del mapa
   const handleSpaceClick = (space: Space) => {
-    if (space.status === "libre") {
+    if (space.status === "Libre") {
       setModalSpace(space) // Abrir modal de reserva (HU8)
     }
-    if (space.status === "reservado") {
-      // Opcional: permitir cancelar la reserva
-      // Por ahora, un simple alert para demostrar
-      if (confirm(`¿Desea cancelar la reserva del espacio ${space.id}?`)) {
-        handleCancelReservation(space.id)
-      }
-    }
-    // Si está "ocupado", no hacemos nada al hacer clic
+    // (Lógica para cancelar reserva iría aquí)
   }
 
   // --- Renderizado del Mapa (HU7) ---
   const getSpaceClass = (status: SpaceStatus) => {
     switch (status) {
-      case "libre":
+      case "Libre":
         return "bg-green-100 text-green-700 hover:bg-green-200"
-      case "ocupado":
+      case "Ocupado":
         return "bg-red-100 text-red-700 opacity-80 cursor-not-allowed"
-      case "reservado":
+      case "Reservado":
         return "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+      default:
+        return "bg-gray-100 text-gray-500" // Estado de 'Mantenimiento' u otro
     }
   }
 
   const getSpaceIcon = (status: SpaceStatus) => {
     switch (status) {
-      case "libre":
+      case "Libre":
         return <CheckCircle className="w-4 h-4" />
-      case "ocupado":
+      case "Ocupado":
         return <Car className="w-4 h-4" />
-      case "reservado":
+      case "Reservado":
         return <Lock className="w-4 h-4" />
+      default:
+        return <AlertTriangle className="w-4 h-4" />
     }
   }
 
+  // --- Renderizado de Estados de Carga y Error ---
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        <p className="ml-4 text-lg">Cargando espacios...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-destructive">
+        <AlertTriangle className="w-12 h-12" />
+        <p className="mt-4 text-lg font-semibold">Error de Conexión</p>
+        <p>{error}</p>
+        <Button onClick={fetchSpaces} className="mt-4">
+          Reintentar
+        </Button>
+      </div>
+    )
+  }
+
+  // --- Renderizado Principal ---
   return (
     <div className="space-y-6">
       <div>
@@ -358,17 +365,17 @@ export function SpaceManagement() {
         <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
           {spaces.map((space) => (
             <Button
-              key={space.id}
+              key={space.id_espacio} // Usamos el PK de la BD como key
               variant="outline"
               className={`h-20 flex flex-col items-center justify-center p-2 text-center ${getSpaceClass(
                 space.status,
               )}`}
               onClick={() => handleSpaceClick(space)}
-              disabled={space.status === "ocupado"}
+              disabled={space.status === "Ocupado"}
             >
               <span className="font-bold text-lg">{space.id}</span>
               <div className="mt-1">{getSpaceIcon(space.status)}</div>
-              {space.status === "ocupado" && (
+              {space.status === "Ocupado" && (
                 <span className="text-xs font-mono mt-1">
                   {space.vehiclePlate}
                 </span>
@@ -383,6 +390,7 @@ export function SpaceManagement() {
         space={modalSpace}
         onClose={() => setModalSpace(null)}
         onConfirm={handleConfirmReservation}
+        loading={modalLoading}
       />
       <CapacityAlert show={showAlert} onClose={() => setShowAlert(false)} />
     </div>
