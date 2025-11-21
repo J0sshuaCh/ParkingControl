@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ParkingCircle, Loader2, Eye, EyeOff } from "lucide-react"
 
+import { loginRequest } from "@/services/authService"
+
 interface LoginProps {
   onLogin: (name: string) => void
 }
@@ -63,20 +65,29 @@ export function Login({ onLogin }: LoginProps) {
   const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+  e.preventDefault();
+  setError("");
 
-    if (!username || !password) {
-      setError("Por favor completa todos los campos")
-      return
-    }
-
-    setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    onLogin(username.charAt(0).toUpperCase() + username.slice(1))
-    setIsLoading(false)
+  if (!username || !password) {
+    setError("Por favor completa todos los campos");
+    return;
   }
+
+  setIsLoading(true);
+
+  try {
+    const data = await loginRequest(username, password);
+
+    // data.user = usuario de MySQL desde backend
+    onLogin(data.user.nombre_completo); 
+
+  } catch (err: any) {
+    setError(err.message || "Credenciales incorrectas");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-background flex items-center justify-center p-4">
