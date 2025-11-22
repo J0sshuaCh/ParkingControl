@@ -12,8 +12,6 @@ USE `parkingcontrol_db` ;
 
 ---
 
-## 🛠️ Definición de Tablas (Estructura Lógica)
-
 -- -----------------------------------------------------
 -- Table `rol` (Tabla de catálogo, independiente)
 -- -----------------------------------------------------
@@ -73,7 +71,7 @@ DEFAULT CHARACTER SET = utf8mb3;
 CREATE TABLE IF NOT EXISTS `parkingcontrol_db`.`vehiculos` (
   `id_vehiculo` INT NOT NULL AUTO_INCREMENT, -- AUTO_INCREMENT agregado
   `placa` VARCHAR(20) NOT NULL,
-  `tipo_vehiculo` ENUM('Bus', 'Camioneta', 'Carro') NOT NULL,
+  `tipo_vehiculo` ENUM('Sedan', 'SUV', 'Moto' ,'Camioneta',) NOT NULL,
   `fecha_registro` DATETIME NULL DEFAULT CURRENT_TIMESTAMP, -- DEFAULT agregado
   `id_espacio` INT NULL, -- Permite NULL si el vehículo ya salió del parqueo
   PRIMARY KEY (`id_vehiculo`),
@@ -114,7 +112,6 @@ CREATE TABLE IF NOT EXISTS `parkingcontrol_db`.`reserva` (
   `id_usuario_creador` INT NOT NULL,
   `fecha_inicio` DATETIME NOT NULL,
   `fecha_fin` DATETIME NOT NULL,
-  `estado` ENUM('Activa', 'Ejecutada', 'Cancelada') NULL DEFAULT 'Activa', -- Agregado 'Cancelada'
   PRIMARY KEY (`id_reserva`),
   INDEX `fk_reserva_espacio_idx` (`id_espacio` ASC) VISIBLE,
   INDEX `fk_reserva_usuario_idx` (`id_usuario_creador` ASC) VISIBLE,
@@ -214,9 +211,9 @@ VALUES (1, 'admin', 'admin', 'Administrador', 'admin@correo.com', 'Activo', NOW(
 
 -- -----------------------------------------------------
 -- 3. Generar espacios de parqueo (4 zonas x 10 espacios = 40 espacios)
--- Se corrigió el INSERT para que no falle con columnas inexistentes en `espacio`.
+-- CORREGIDO: Se usa INSERT IGNORE INTO y se elimina ON DUPLICATE KEY UPDATE.
 -- -----------------------------------------------------
-INSERT INTO espacio (codigo, letra_espacio, estado)
+INSERT IGNORE INTO espacio (codigo, letra_espacio, estado)
 SELECT 
     CONCAT(letter, '-', LPAD(number, 2, '0')), -- Genera A-01, B-05, etc.
     letter, 
@@ -227,10 +224,8 @@ FROM (
 CROSS JOIN (
     SELECT 1 AS number UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
     UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
-) AS numbers
-ON DUPLICATE KEY UPDATE codigo=codigo; -- Evita errores si se ejecuta dos veces
-
----
+) AS numbers;
+-- ON DUPLICATE KEY UPDATE codigo=codigo; -- Esta línea es la que causaba el error y se elimina.
 
 -- -----------------------------------------------------
 -- Restauración de configuraciones
