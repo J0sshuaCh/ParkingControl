@@ -8,6 +8,14 @@ export const listarEspaciosLibres = (req, res) => {
   });
 };
 
+// GET: Listar vehículos en espacios ocupados
+export const listarVehiculosEnEspaciosOcupados = (req, res) => {
+  VehiculoModel.vehiculosEnEspaciosOcupados((err, rows) => {
+    if (err) return res.status(500).json({ error: "Error al obtener vehículos" });
+    res.json(rows);
+  });
+}
+
 // POST: Registrar vehículo
 export const registrarVehiculo = (req, res) => {
   // Recibimos datos del body

@@ -17,5 +17,11 @@ export const VehiculoModel = {
   ocuparEspacio: (id_espacio, callback) => {
     const sql = "UPDATE espacio SET estado = 'ocupado' WHERE id_espacio = ?";
     db.query(sql, [id_espacio], callback);
+  },
+
+  // 4. Obtener todos los vehículos en espacios ocupados
+  vehiculosEnEspaciosOcupados: (callback) => {
+    const sql = "SELECT v.*, e.codigo AS codigo_espacio FROM vehiculo v JOIN espacio e ON v.id_espacio = e.id_espacio WHERE e.estado = 'ocupado'";
+    db.query(sql, callback);
   }
 };
