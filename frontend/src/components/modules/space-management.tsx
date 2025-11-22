@@ -1,18 +1,17 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Car,
-  Lock,
-  CheckCircle,
-  ParkingCircle,
-  X,
-  AlertTriangle,
-  Map,
-} from "lucide-react"
+import { Car, Lock, CheckCircle, ParkingCircle, X, AlertTriangle, Map } from "lucide-react"
+
+// --- Importar el servicio de espacios ---
+// RUTA CORREGIDA: Incluimos .js para asegurar que el compilador resuelva el módulo transpuesto.
+import { getMapaOcupacion, reservarEspacio, liberarEspacio } from "@/services/espaciosService.js" 
+
+// --- CONFIGURACIÓN BASE ---
+const USER_ID = 1; // HARDCODED: Esto debe ser dinámico desde el contexto de autenticación
 
 // --- TIPOS DE DATOS ---
 
@@ -21,54 +20,18 @@ type SpaceStatus = "libre" | "ocupado" | "reservado"
 
 // Definimos la estructura de un espacio de estacionamiento
 interface Space {
-  id: string // Ej: "A-01"
+  id: string // Código del espacio, Ej: "A-01" (Viene de e.codigo en la BD)
+  // 'dbId' es el id_espacio numérico de la base de datos
+  dbId?: number; 
   status: SpaceStatus
   vehiclePlate?: string // Placa del vehículo si está ocupado
   reservedFor?: string // Motivo de la reserva
   reservedUntil?: string // Duración de la reserva
 }
 
-// --- DATOS DE EJEMPLO (MOCK) ---
-
-// Generamos una lista inicial de 30 espacios
-const initialSpaces: Space[] = [
-  ...Array.from({ length: 10 }, (_, i) => ({
-    id: `A-${String(i + 1).padStart(2, "0")}`,
-    status: "libre" as SpaceStatus,
-  })),
-  ...Array.from({ length: 10 }, (_, i) => ({
-    id: `B-${String(i + 1).padStart(2, "0")}`,
-    status: "libre" as SpaceStatus,
-  })),
-  ...Array.from({ length: 10 }, (_, i) => ({
-    id: `C-${String(i + 1).padStart(2, "0")}`,
-    status: "libre" as SpaceStatus,
-  })),
-  ...Array.from({ length: 10 }, (_, i) => ({
-    id: `D-${String(i + 1).padStart(2, "0")}`,
-    status: "libre" as SpaceStatus,
-  })),
-]
-
-// Pre-poblamos algunos espacios para el demo
-initialSpaces[1] = { id: "A-02", status: "ocupado", vehiclePlate: "ABC-123" }
-initialSpaces[2] = { id: "A-03", status: "ocupado", vehiclePlate: "XYZ-789" }
-initialSpaces[12] = {
-  id: "B-03",
-  status: "reservado",
-  reservedFor: "Mantenimiento",
-  reservedUntil: "2 horas",
-}
-
 // --- COMPONENTE MODAL DE RESERVA (para HU8) ---
 
-interface ReserveModalProps {
-  space: Space | null
-  onClose: () => void
-  onConfirm: (spaceId: string, reason: string, duration: string) => void
-}
-
-function ReserveModal({ space, onClose, onConfirm }: ReserveModalProps) {
+function ReserveModal({ space, onClose, onConfirm }: any) {
   const [reason, setReason] = useState("")
   const [duration, setDuration] = useState("")
 
@@ -77,11 +40,10 @@ function ReserveModal({ space, onClose, onConfirm }: ReserveModalProps) {
   const handleConfirm = () => {
     if (reason && duration) {
       onConfirm(space.id, reason, duration)
-      onClose() // Cierra el modal después de confirmar
+      onClose() 
     } else {
-      // Reemplazamos alert() con un feedback más integrado si es posible
-      // Por ahora, un simple alert() como en tu componente de registro
-      alert("Por favor, ingrese el motivo y la duración.")
+      console.log("Por favor, ingrese el motivo y la duración.")
+      alert("Por favor, ingrese el motivo y la duración.") 
     }
   }
 
@@ -134,14 +96,9 @@ function ReserveModal({ space, onClose, onConfirm }: ReserveModalProps) {
   )
 }
 
+
 // --- COMPONENTE ALERTA DE CAPACIDAD (para HU9) ---
-
-interface CapacityAlertProps {
-  show: boolean
-  onClose: () => void
-}
-
-function CapacityAlert({ show, onClose }: CapacityAlertProps) {
+function CapacityAlert({ show, onClose }: { show: boolean, onClose: () => void }) {
   if (!show) return null
 
   return (
@@ -179,12 +136,39 @@ function CapacityAlert({ show, onClose }: CapacityAlertProps) {
 // --- COMPONENTE PRINCIPAL: GESTIÓN DE ESPACIOS ---
 
 export function SpaceManagement() {
-  const [spaces, setSpaces] = useState<Space[]>(initialSpaces)
+  const [spaces, setSpaces] = useState<Space[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [modalSpace, setModalSpace] = useState<Space | null>(null)
   const [showAlert, setShowAlert] = useState(false)
 
+  // --- Función de Carga de Datos (HU7) ---
+  const fetchSpaces = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      // USANDO EL SERVICIO
+      const data = await getMapaOcupacion();
+      
+      // Mapeamos los datos del backend y los guardamos
+      setSpaces(data.map(s => ({ ...s, dbId: s.dbId })));
+    } catch (err: any) {
+      console.error("Error al cargar espacios:", err)
+      setError(err.message || "No se pudo conectar con el backend para cargar el mapa.")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchSpaces()
+    // Implementar polling para actualización en tiempo real (HU7)
+    // const interval = setInterval(fetchSpaces, 5000); 
+
+    // return () => clearInterval(interval); 
+  }, [fetchSpaces])
+
   // --- Cálculos de Estadísticas (HU7) ---
-  // useMemo optimiza para que no se recalcule en cada render
   const stats = useMemo(() => {
     const total = spaces.length
     const occupied = spaces.filter((s) => s.status === "ocupado").length
@@ -197,52 +181,52 @@ export function SpaceManagement() {
 
   // --- Efecto para Alerta de Capacidad (HU9) ---
   useEffect(() => {
-    if (stats.capacityPercent === 100) {
+    // Si la capacidad es 100% y no estamos cargando, disparamos la alerta
+    if (stats.capacityPercent === 100 && !loading) {
       setShowAlert(true)
-      // Aquí se podría agregar un efecto de sonido si se desea
     } else {
       setShowAlert(false)
     }
-  }, [stats.capacityPercent])
+  }, [stats.capacityPercent, loading])
 
   // --- Manejadores de Eventos ---
 
   // Manejador para reservar (HU8)
-  const handleConfirmReservation = (
-    spaceId: string,
+  const handleConfirmReservation = async (
+    spaceId: string, // Código del espacio
     reason: string,
     duration: string,
   ) => {
-    setSpaces((prevSpaces) =>
-      prevSpaces.map((space) =>
-        space.id === spaceId
-          ? {
-              ...space,
-              status: "reservado",
-              reservedFor: reason,
-              reservedUntil: duration,
-              vehiclePlate: undefined, // Limpiar placa si la había
-            }
-          : space,
-      ),
-    )
-    setModalSpace(null)
+    try {
+        await reservarEspacio(spaceId, reason, duration, USER_ID);
+        fetchSpaces(); 
+        setModalSpace(null);
+        console.log(`Espacio ${spaceId} reservado exitosamente.`)
+
+    } catch (err: any) {
+        console.error("Error al confirmar reserva:", err);
+        alert(`Error al reservar: ${err.message || 'Error de conexión'}`);
+    }
   }
 
-  // Manejador para cancelar una reserva (lógica extra)
-  const handleCancelReservation = (spaceId: string) => {
-    setSpaces((prevSpaces) =>
-      prevSpaces.map((space) =>
-        space.id === spaceId
-          ? {
-              ...space,
-              status: "libre",
-              reservedFor: undefined,
-              reservedUntil: undefined,
-            }
-          : space,
-      ),
-    )
+  // Manejador para cancelar una reserva (lógica extra: PUT /liberar)
+  const handleCancelReservation = async (spaceId: string) => {
+    const spaceToFree = spaces.find(s => s.id === spaceId);
+    if (!spaceToFree || !spaceToFree.dbId) {
+        alert("Error: ID numérico del espacio no encontrado para liberar.");
+        return;
+    }
+
+    try {
+        if (window.confirm(`¿Desea liberar y eliminar la reserva del espacio ${spaceId}?`)) {
+            await liberarEspacio(spaceToFree.dbId); 
+            fetchSpaces(); // Actualizar el mapa
+            console.log(`Espacio ${spaceId} liberado exitosamente.`);
+        }
+    } catch (err: any) {
+        console.error("Error al cancelar reserva:", err);
+        alert(`Error al cancelar reserva: ${err.message || 'Error de conexión'}`);
+    }
   }
 
   // Manejador para clic en un espacio del mapa
@@ -251,18 +235,16 @@ export function SpaceManagement() {
       setModalSpace(space) // Abrir modal de reserva (HU8)
     }
     if (space.status === "reservado") {
-      // Opcional: permitir cancelar la reserva
-      // Por ahora, un simple alert para demostrar
       if (confirm(`¿Desea cancelar la reserva del espacio ${space.id}?`)) {
-        handleCancelReservation(space.id)
+         handleCancelReservation(space.id) 
       }
     }
-    // Si está "ocupado", no hacemos nada al hacer clic
   }
 
   // --- Renderizado del Mapa (HU7) ---
   const getSpaceClass = (status: SpaceStatus) => {
     switch (status) {
+      // ESTILO VERDE RESTAURADO
       case "libre":
         return "bg-green-100 text-green-700 hover:bg-green-200"
       case "ocupado":
@@ -281,6 +263,24 @@ export function SpaceManagement() {
       case "reservado":
         return <Lock className="w-4 h-4" />
     }
+  }
+
+  if (loading) {
+    return (
+        <Card className="p-6 text-center text-muted-foreground">
+            Cargando mapa de ocupación...
+        </Card>
+    );
+  }
+  
+  if (error) {
+    return (
+        <Card className="p-6 text-center text-destructive border-destructive">
+            <AlertTriangle className="w-5 h-5 mx-auto mb-2" />
+            {error}
+            <Button className="mt-4" onClick={fetchSpaces}>Reintentar Carga</Button>
+        </Card>
+    );
   }
 
   return (

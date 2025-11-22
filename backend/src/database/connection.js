@@ -1,16 +1,17 @@
-import mysql from "mysql2";
+import mysql from 'mysql2/promise'; // 1. Usa la versión Promise
 
-export const db = mysql.createConnection({
-  host: "localhost",
-  user: "root", //pones tu usuario
-  password: "root", //pones tu contraseña
-  database: "parking_control",
-});
+const config = {
+    host: 'localhost',
+    user: 'root', // Usando tu credencial anterior
+    password: 'root', // Usando tu credencial anterior
+    database: 'parkingcontrol_db',
+    waitForConnections: true,
+    // 2. Usar un Pool de Conexiones, no una conexión simple.
+    connectionLimit: 10 
+};
 
-db.connect((err) => {
-  if (err) {
-    console.log("Error conectando a MySQL:", err);
-    return;
-  }
-  console.log("Conectado a MySQL");
-});
+// Se crea y exporta el pool de forma NOMBRADA como 'db'
+// db ahora es un Pool de Conexiones que soporta async/await
+export const db = mysql.createPool(config); 
+
+console.log('Conexión a la base de datos MySQL configurada y lista (Pool de Promesas).');

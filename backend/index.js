@@ -1,5 +1,7 @@
 import express from "express";
 import usuariosRoutes from "./src/routes/usuarios.routes.js";
+import vehiculoRoutes from './src/routes/vehiculo.routes.js';
+import espaciosRoutes from './src/routes/espacio.routes.js';
 import cors from "cors"
 
 const app = express();
@@ -21,3 +23,5 @@ app.use(cors({
 
 // RUTAS
 app.use("/api/usuarios", usuariosRoutes);
+app.use('/api/vehiculos', vehiculoRoutes);
+app.use('/api/espacios', espaciosRoutes);
