@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Trash2, Edit2, BarChart3, Download, History } from "lucide-react"
+import { getTarifas, createTarifa, deleteTarifa, Tarifa } from "@/services/tarifasService"
+import { useEffect } from "react"
 
 interface User {
   id: string
@@ -14,11 +16,7 @@ interface User {
   role: "Administrador" | "Supervisor" | "Operador"
 }
 
-interface Rate {
-  id: string
-  duration: string
-  amount: number
-}
+// interface Rate removed in favor of Tarifa from service
 
 interface DailyReport {
   date: string
@@ -45,12 +43,16 @@ export function Administration() {
     { id: "3", name: "Carlos López", username: "clopez", role: "Operador" },
   ])
 
-  const [rates, setRates] = useState<Rate[]>([
-    { id: "1", duration: "Hasta 1 hora", amount: 15000 },
-    { id: "2", duration: "Hasta 3 horas", amount: 35000 },
-    { id: "3", duration: "Hasta 8 horas", amount: 70000 },
-    { id: "4", duration: "Día completo", amount: 100000 },
-  ])
+  const [rates, setRates] = useState<Tarifa[]>([])
+
+  useEffect(() => {
+    loadTarifas()
+  }, [])
+
+  const loadTarifas = async () => {
+    const data = await getTarifas()
+    setRates(data)
+  }
 
   const [dailyReports] = useState<DailyReport[]>([
     { date: "Lunes", revenue: 450000, vehicles: 120, occupancy: 65 },
@@ -90,7 +92,7 @@ export function Administration() {
   ])
 
   const [newUser, setNewUser] = useState({ name: "", username: "", role: "Operador" as const })
-  const [newRate, setNewRate] = useState({ duration: "", amount: "" })
+  const [newRate, setNewRate] = useState({ tipo_vehiculo: "Carro", precio_hora: "" })
   const [userRole] = useState("Administrador")
 
   const handleAddUser = () => {
@@ -106,20 +108,36 @@ export function Administration() {
     alert("Usuario eliminado")
   }
 
-  const handleAddRate = () => {
-    if (newRate.duration && newRate.amount) {
-      setRates([
-        ...rates,
-        { id: Date.now().toString(), duration: newRate.duration, amount: Number.parseInt(newRate.amount) },
-      ])
-      setNewRate({ duration: "", amount: "" })
-      alert("Tarifa agregada correctamente")
+  const handleAddRate = async () => {
+    if (newRate.tipo_vehiculo && newRate.precio_hora) {
+      try {
+        await createTarifa({
+          tipo_vehiculo: newRate.tipo_vehiculo,
+          precio_hora: Number(newRate.precio_hora),
+          fecha_vigencia_inicio: new Date().toISOString().split('T')[0],
+          estado: 'En vigencia'
+        })
+        setNewRate({ tipo_vehiculo: "Sedan", precio_hora: "" })
+        alert("Tarifa agregada correctamente")
+        loadTarifas()
+      } catch (error) {
+        console.error(error)
+        alert("Error al agregar tarifa")
+      }
     }
   }
 
-  const handleDeleteRate = (id: string) => {
-    setRates(rates.filter((r) => r.id !== id))
-    alert("Tarifa eliminada")
+  const handleDeleteRate = async (id: number) => {
+    if (confirm("¿Estás seguro de eliminar esta tarifa?")) {
+      try {
+        await deleteTarifa(id)
+        alert("Tarifa eliminada")
+        loadTarifas()
+      } catch (error) {
+        console.error(error)
+        alert("Error al eliminar tarifa")
+      }
+    }
   }
 
   const handleExportExcel = () => {
@@ -228,19 +246,27 @@ export function Administration() {
           <Card className="p-6 bg-card border border-border">
             <h2 className="text-lg font-semibold mb-4">Agregar Nueva Tarifa - Lima Centro</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                placeholder="Duración (ej: Hasta 1 hora)"
-                value={newRate.duration}
-                onChange={(e) => setNewRate({ ...newRate, duration: e.target.value })}
-                className="bg-input border-border"
-              />
+              <select
+                value={newRate.tipo_vehiculo}
+                onChange={(e) => setNewRate({ ...newRate, tipo_vehiculo: e.target.value })}
+                className="px-3 py-2 bg-input border border-border rounded-md text-foreground"
+              >
+                {/* ACTUALIZADO: Nuevas opciones coincidentes con la BD */}
+                <option value="Sedan">Sedan</option>
+                <option value="SUV">SUV</option>
+                <option value="Compacto">Compacto</option>
+                <option value="Camioneta">Camioneta</option>
+                <option value="Moto">Moto</option>
+              </select>
+
               <Input
                 type="number"
-                placeholder="Monto"
-                value={newRate.amount}
-                onChange={(e) => setNewRate({ ...newRate, amount: e.target.value })}
+                placeholder="Precio por Hora"
+                value={newRate.precio_hora}
+                onChange={(e) => setNewRate({ ...newRate, precio_hora: e.target.value })}
                 className="bg-input border-border"
               />
+
               <Button onClick={handleAddRate} className="bg-primary text-primary-foreground hover:bg-primary/90">
                 <Plus className="w-4 h-4 mr-2" />
                 Agregar
@@ -254,16 +280,18 @@ export function Administration() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 font-semibold">Duración</th>
-                    <th className="text-left py-3 px-4 font-semibold">Monto</th>
+                    <th className="text-left py-3 px-4 font-semibold">Tipo Vehículo</th>
+                    <th className="text-left py-3 px-4 font-semibold">Precio Hora</th>
+                    <th className="text-left py-3 px-4 font-semibold">Estado</th>
                     <th className="text-left py-3 px-4 font-semibold">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rates.map((rate) => (
-                    <tr key={rate.id} className="border-b border-border hover:bg-muted/50">
-                      <td className="py-3 px-4 font-medium">{rate.duration}</td>
-                      <td className="py-3 px-4 font-semibold">S/. {rate.amount.toLocaleString()}</td>
+                    <tr key={rate.id_tarifa} className="border-b border-border hover:bg-muted/50">
+                      <td className="py-3 px-4 font-medium">{rate.tipo_vehiculo}</td>
+                      <td className="py-3 px-4 font-semibold">S/. {Number(rate.precio_hora).toLocaleString()}</td>
+                      <td className="py-3 px-4">{rate.estado}</td>
                       <td className="py-3 px-4 flex gap-2">
                         <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">
                           <Edit2 className="w-4 h-4" />
@@ -271,7 +299,7 @@ export function Administration() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDeleteRate(rate.id)}
+                          onClick={() => handleDeleteRate(rate.id_tarifa)}
                           className="text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -342,13 +370,12 @@ export function Administration() {
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full ${
-                          report.occupancy >= 80
-                            ? "bg-destructive"
-                            : report.occupancy >= 60
-                              ? "bg-secondary"
-                              : "bg-accent"
-                        }`}
+                        className={`h-2 rounded-full ${report.occupancy >= 80
+                          ? "bg-destructive"
+                          : report.occupancy >= 60
+                            ? "bg-secondary"
+                            : "bg-accent"
+                          }`}
                         style={{ width: `${report.occupancy}%` }}
                       />
                     </div>
@@ -435,13 +462,12 @@ export function Administration() {
                       <td className="py-3 px-4 font-medium">{record.user}</td>
                       <td className="py-3 px-4">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            record.action === "Anular Ticket"
-                              ? "bg-destructive/20 text-destructive"
-                              : record.action === "Modificar Monto"
-                                ? "bg-secondary/20 text-secondary"
-                                : "bg-accent/20 text-accent"
-                          }`}
+                          className={`px-2 py-1 rounded text-xs font-medium ${record.action === "Anular Ticket"
+                            ? "bg-destructive/20 text-destructive"
+                            : record.action === "Modificar Monto"
+                              ? "bg-secondary/20 text-secondary"
+                              : "bg-accent/20 text-accent"
+                            }`}
                         >
                           {record.action}
                         </span>
