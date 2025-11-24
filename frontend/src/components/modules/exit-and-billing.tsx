@@ -1,72 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, CheckCircle, Printer, Send, Edit2 } from "lucide-react";
+import { AlertCircle, CheckCircle, Printer, Search, RefreshCcw, MousePointerClick, X } from "lucide-react";
 import { buscarTicketPorPlaca, procesarPago } from "@/services/ticketService";
-// Importamos solo la interfaz, no la función duplicada
 import type { Ticket } from "@/services/ticketService";
+import { getVehiculosActivos, type VehiculoActivo } from "@/services/vehiculoService";
 
 export function ExitAndBilling() {
-  const [plate, setPlate] = useState("");
+  // Estados de Cobro
   const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null);
-  const [editingAmount, setEditingAmount] = useState(false);
-  const [editedAmount, setEditedAmount] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handleSearchVehicle = async () => {
+  // Estados de la Lista de Vehículos
+  const [vehicles, setVehicles] = useState<VehiculoActivo[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [listFilter, setListFilter] = useState("");
+
+  // --- Función para cargar la lista de vehículos ---
+  const fetchVehicles = useCallback(async () => {
+    setLoadingList(true);
+    try {
+      const data = await getVehiculosActivos();
+      setVehicles(data);
+    } catch (err) {
+      console.error("Error al cargar lista de vehículos:", err);
+    } finally {
+      setLoadingList(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchVehicles();
+  }, [fetchVehicles]);
+
+  // --- Lógica de Selección y Búsqueda ---
+  const handleSelectVehicle = async (plate: string) => {
     setError("");
     setSuccess("");
     setCurrentTicket(null);
 
-    if (!plate) return;
-
     try {
       const ticket = await buscarTicketPorPlaca(plate.toUpperCase());
       setCurrentTicket(ticket);
-      // Inicializamos el monto editado con el monto total calculado por el backend
-      setEditedAmount((ticket.monto_total ?? 0).toFixed(2));
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "No se encontró el vehículo o ya salió.");
+      setError(err.message || "No se encontró el ticket o el vehículo ya salió.");
     }
   };
 
+  // --- Lógica de Pago ---
   const handlePayment = async () => {
     if (!currentTicket) return;
     setError("");
 
     try {
-      const finalAmount = editingAmount
-        ? Number.parseFloat(editedAmount)
-        : (currentTicket.monto_total ?? 0);
+      const finalAmount = currentTicket.monto_total ?? 0;
 
-      if (isNaN(finalAmount) || finalAmount < 0) {
-        setError("El monto ingresado no es válido.");
-        return;
-      }
-
-      // Como id_espacio ya no es opcional en la interfaz, quitamos el "!"
       await procesarPago(currentTicket.id_ticket, currentTicket.id_espacio, finalAmount);
 
-      setSuccess(`Cobro de S/. ${finalAmount.toFixed(2)} registrado correctamente.`);
+      setSuccess(`Pago de S/. ${finalAmount.toFixed(2)} procesado exitosamente.`);
       setCurrentTicket(null);
-      setPlate("");
-      setEditingAmount(false);
+      fetchVehicles();
+
     } catch (err: any) {
       setError(err.message || "Error al procesar el pago.");
     }
   };
 
   const handlePrint = () => {
-    alert("Imprimiendo ticket...");
+    alert("Imprimiendo comprobante...");
   };
 
-  const handleSendDigital = () => {
-    alert("Ticket enviado digitalmente");
+  const handleCancel = () => {
+    setCurrentTicket(null);
+    setError("");
+    setSuccess("");
   };
 
   const formatDuration = (minutes: number) => {
@@ -76,113 +88,190 @@ export function ExitAndBilling() {
     return `${h}h ${m}m`;
   };
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Salida y Cobro</h1>
-        <p className="text-muted-foreground">Registra salidas de vehículos y procesa pagos</p>
-      </div>
+  // Filtrar la lista visualmente
+  const filteredVehicles = vehicles.filter(v =>
+    v.placa.includes(listFilter.toUpperCase()) ||
+    v.codigo_ticket.includes(listFilter.toUpperCase())
+  );
 
-      <Card className="p-6 bg-card border border-border">
-        <h2 className="text-lg font-semibold mb-4">Buscar Vehículo</h2>
-        <div className="flex gap-4">
-          <Input
-            placeholder="Ingresa la placa del vehículo"
-            value={plate}
-            onChange={(e) => setPlate(e.target.value.toUpperCase())}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearchVehicle()} // Agregado búsqueda con Enter
-            className="flex-1 bg-input border-border"
-          />
-          <Button onClick={handleSearchVehicle} className="bg-primary text-primary-foreground hover:bg-primary/90">
-            Buscar
+  return (
+    // CAMBIO: Grid de 3 columnas
+    <div className="space-y-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      {/* --- COLUMNA IZQUIERDA (2/3): LISTA DE VEHÍCULOS --- */}
+      <div className="lg:col-span-2 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Salida y Cobro</h1>
+          <p className="text-muted-foreground">Seleccione un vehículo de la lista para procesar su salida.</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            Vehículos en Parqueo
+            <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {filteredVehicles.length}
+            </span>
+          </h2>
+          <Button variant="outline" size="sm" onClick={fetchVehicles} disabled={loadingList}>
+            <RefreshCcw className={`w-4 h-4 mr-2 ${loadingList ? 'animate-spin' : ''}`} />
+            Actualizar Lista
           </Button>
         </div>
-        {error && <p className="text-red-500 mt-2 text-sm font-medium">{error}</p>}
-        {success && <p className="text-green-600 mt-2 text-sm font-medium">{success}</p>}
-      </Card>
 
-      {currentTicket && (
-        <Card className="p-6 bg-card border border-border border-accent animate-slide-up">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-accent" /> Ticket de Pago
-          </h2>
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <p className="text-sm text-muted-foreground">Placa</p>
-              <p className="text-xl font-bold">{currentTicket.placa}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Espacio</p>
-              <p className="text-lg">{currentTicket.codigo_espacio}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Tipo Vehículo</p>
-              <p className="text-lg">{currentTicket.tipo_vehiculo}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Hora Ingreso</p>
-              <p className="text-lg">{new Date(currentTicket.hora_entrada).toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Hora Salida (Est.)</p>
-              <p className="text-lg">{currentTicket.hora_salida ? new Date(currentTicket.hora_salida).toLocaleString() : "Ahora"}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Duración</p>
-              <p className="text-lg">{formatDuration(currentTicket.tiempo_permanencia ?? 0)}</p>
+        <Card className="p-0 bg-card border border-border overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-border bg-muted/30">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Filtrar por placa o número de ticket..."
+                className="pl-9 bg-background"
+                value={listFilter}
+                onChange={(e) => setListFilter(e.target.value)}
+              />
             </div>
           </div>
-          <div className="bg-muted/50 p-4 rounded-lg mb-6">
-            <p className="text-sm text-muted-foreground mb-2">Monto Total</p>
-            {!editingAmount ? (
-              <div className="flex items-center justify-between">
-                <p className="text-4xl font-bold text-accent">S/. {(currentTicket.monto_total ?? 0).toFixed(2)}</p>
-                <Button size="sm" variant="outline" onClick={() => setEditingAmount(true)} className="bg-transparent">
-                  <Edit2 className="w-4 h-4 mr-1" /> Editar
-                </Button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  value={editedAmount}
-                  onChange={(e) => setEditedAmount(e.target.value)}
-                  className="flex-1 bg-input border-border text-lg font-bold"
-                />
-                <Button
-                  size="sm"
-                  onClick={() => setEditingAmount(false)}
-                  className="bg-accent text-accent-foreground hover:bg-accent/90"
-                >
-                  OK
-                </Button>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            <Button onClick={handlePayment} className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90">
-              <CheckCircle className="w-4 h-4 mr-2" /> Procesar Pago
-            </Button>
-            <Button onClick={handlePrint} variant="outline" className="flex-1 bg-transparent">
-              <Printer className="w-4 h-4 mr-2" /> Imprimir
-            </Button>
-            <Button onClick={handleSendDigital} variant="outline" className="flex-1 bg-transparent">
-              <Send className="w-4 h-4 mr-2" /> Enviar
-            </Button>
-            <Button
-              onClick={() => {
-                setCurrentTicket(null);
-                setPlate("");
-                setEditingAmount(false);
-              }}
-              variant="outline"
-              className="flex-1"
-            >
-              Cancelar
-            </Button>
+
+          <div className="overflow-auto max-h-[600px]">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-muted/50 text-muted-foreground sticky top-0 z-10 uppercase text-xs tracking-wider">
+                <tr>
+                  <th className="py-3 px-6 font-medium">Ticket</th>
+                  <th className="py-3 px-6 font-medium">Placa</th>
+                  <th className="py-3 px-6 font-medium hidden sm:table-cell">Ingreso</th>
+                  <th className="py-3 px-6 font-medium">Tipo</th>
+                  <th className="py-3 px-6 font-medium">Espacio</th>
+                  <th className="py-3 px-6 font-medium text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredVehicles.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                      {loadingList ? "Cargando vehículos..." : "No se encontraron vehículos."}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredVehicles.map((vehicle) => {
+                    const isSelected = currentTicket?.id_ticket.toString() === vehicle.id_vehiculo.toString();
+                    return (
+                      <tr
+                        key={vehicle.id_vehiculo}
+                        className={`transition-colors hover:bg-muted/50 ${isSelected ? "bg-primary/5" : ""}`}
+                      >
+                        <td className="py-3 px-6 font-mono text-xs text-muted-foreground">{vehicle.codigo_ticket}</td>
+                        <td className="py-3 px-6 font-bold text-foreground">{vehicle.placa}</td>
+                        <td className="py-3 px-6 hidden sm:table-cell text-muted-foreground">{vehicle.hora_ingreso}</td>
+                        <td className="py-3 px-6">{vehicle.tipo_vehiculo}</td>
+                        <td className="py-3 px-6">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                            {vehicle.espacio}
+                          </span>
+                        </td>
+                        <td className="py-3 px-6 text-right">
+                          <Button
+                            size="sm"
+                            variant={isSelected ? "secondary" : "default"}
+                            onClick={() => handleSelectVehicle(vehicle.placa)}
+                            className="h-8 shadow-none"
+                            disabled={isSelected}
+                          >
+                            {isSelected ? "Seleccionado" : "Cobrar"}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         </Card>
-      )}
+      </div>
+
+      {/* --- COLUMNA DERECHA (1/3): PANTALLA DE COBRO --- */}
+      <div className="lg:col-span-1 space-y-6 sticky top-6">
+        {/* Mensajes de estado */}
+        {error && (
+          <Card className="p-4 bg-destructive/10 border-destructive text-destructive flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" /> {error}
+          </Card>
+        )}
+        {success && (
+          <Card className="p-4 bg-green-100 border-green-200 text-green-700 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" /> {success}
+          </Card>
+        )}
+
+        {/* TICKET DE COBRO */}
+        {currentTicket ? (
+          <Card className="p-6 bg-card border border-primary/50 shadow-md animate-in fade-in zoom-in duration-300">
+            <div className="flex justify-between items-start mb-6 border-b border-border pb-4">
+              <div>
+                <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
+                  Ticket: {currentTicket.codigo_ticket}
+                </h2>
+                <p className="text-sm text-muted-foreground">Resumen de estancia</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 text-sm mb-6">
+              <div className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
+                <span className="text-muted-foreground">Placa</span>
+                <span className="font-bold text-lg">{currentTicket.placa}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Vehículo</span>
+                <span className="font-medium">{currentTicket.tipo_vehiculo}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Espacio</span>
+                <span className="font-medium">{currentTicket.codigo_espacio}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Hora Ingreso</span>
+                <span>{new Date(currentTicket.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Tiempo Total</span>
+                <span className="font-mono font-bold">{formatDuration(currentTicket.tiempo_permanencia ?? 0)}</span>
+              </div>
+            </div>
+
+            <div className="bg-primary/5 p-6 rounded-xl mb-6 text-center border border-primary/10">
+              <p className="text-xs text-muted-foreground uppercase font-bold mb-1 tracking-wider">Total a Pagar</p>
+              <p className="text-5xl font-extrabold text-primary">
+                S/. {(currentTicket.monto_total ?? 0).toFixed(2)}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Button onClick={handlePayment} className="w-full h-12 text-lg font-bold shadow-sm">
+                <CheckCircle className="w-5 h-5 mr-2" /> CONFIRMAR PAGO
+              </Button>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Button onClick={handlePrint} variant="outline" className="w-full">
+                  <Printer className="w-4 h-4 mr-2" /> Imprimir
+                </Button>
+                <Button
+                  onClick={handleCancel}
+                  variant="outline"
+                  className="w-full text-destructive border-destructive/30 hover:bg-destructive hover:text-white"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          // Estado vacío
+          <div className="hidden lg:flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-xl text-muted-foreground bg-muted/20">
+            <MousePointerClick className="w-12 h-12 mb-4 opacity-20" />
+            <p className="font-medium">Seleccione un vehículo de la lista</p>
+            <p className="text-sm">para ver el detalle de cobro</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
