@@ -38,10 +38,17 @@ export const createTarifa = async (tarifa: Omit<Tarifa, "id_tarifa">): Promise<T
     return res.data;
 };
 
-export const updateTarifa = async (id: number, tarifa: Partial<Tarifa>): Promise<void> => {
-    await axios.put(`${API_URL}/${id}`, tarifa);
+export const updateTarifa = async (id: number, tarifa: Partial<Tarifa>) => {
+    try {
+        const res = await axios.put(`${API_URL}/${id}`, tarifa, {
+            headers: { "Content-Type": "application/json" },
+        });
+        return res.data;
+    } catch (err: any) {
+        throw err.response?.data || { message: "Error al actualizar la tarifa" };
+    }
 };
 
-export const deleteTarifa = async (id: number): Promise<void> => {
+export const deleteTarifa = async (id: number) => {
     await axios.delete(`${API_URL}/${id}`);
 };
