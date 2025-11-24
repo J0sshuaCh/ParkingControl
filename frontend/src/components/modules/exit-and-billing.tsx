@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertCircle, CheckCircle, Printer, Send, Edit2 } from "lucide-react";
 import { buscarTicketPorPlaca, procesarPago } from "@/services/ticketService";
-import { Ticket } from "@/services/ticketService";
+// Importamos solo la interfaz, no la función duplicada
+import type { Ticket } from "@/services/ticketService";
 
 export function ExitAndBilling() {
   const [plate, setPlate] = useState("");
@@ -26,8 +27,10 @@ export function ExitAndBilling() {
     try {
       const ticket = await buscarTicketPorPlaca(plate.toUpperCase());
       setCurrentTicket(ticket);
-      setEditedAmount((ticket.monto_total ?? 0).toString());
+      // Inicializamos el monto editado con el monto total calculado por el backend
+      setEditedAmount((ticket.monto_total ?? 0).toFixed(2));
     } catch (err: any) {
+      console.error(err);
       setError(err.message || "No se encontró el vehículo o ya salió.");
     }
   };
@@ -35,14 +38,21 @@ export function ExitAndBilling() {
   const handlePayment = async () => {
     if (!currentTicket) return;
     setError("");
+
     try {
       const finalAmount = editingAmount
         ? Number.parseFloat(editedAmount)
         : (currentTicket.monto_total ?? 0);
-      // id_espacio may be optional; assert non‑null here
-      await procesarPago(currentTicket.id_ticket, currentTicket.id_espacio!, finalAmount);
 
-      setSuccess("Pago procesado correctamente. Espacio liberado.");
+      if (isNaN(finalAmount) || finalAmount < 0) {
+        setError("El monto ingresado no es válido.");
+        return;
+      }
+
+      // Como id_espacio ya no es opcional en la interfaz, quitamos el "!"
+      await procesarPago(currentTicket.id_ticket, currentTicket.id_espacio, finalAmount);
+
+      setSuccess(`Cobro de S/. ${finalAmount.toFixed(2)} registrado correctamente.`);
       setCurrentTicket(null);
       setPlate("");
       setEditingAmount(false);
@@ -60,6 +70,7 @@ export function ExitAndBilling() {
   };
 
   const formatDuration = (minutes: number) => {
+    if (!minutes) return "0h 0m";
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
     return `${h}h ${m}m`;
@@ -79,18 +90,19 @@ export function ExitAndBilling() {
             placeholder="Ingresa la placa del vehículo"
             value={plate}
             onChange={(e) => setPlate(e.target.value.toUpperCase())}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearchVehicle()} // Agregado búsqueda con Enter
             className="flex-1 bg-input border-border"
           />
           <Button onClick={handleSearchVehicle} className="bg-primary text-primary-foreground hover:bg-primary/90">
             Buscar
           </Button>
         </div>
-        {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
-        {success && <p className="text-green-500 mt-2 text-sm">{success}</p>}
+        {error && <p className="text-red-500 mt-2 text-sm font-medium">{error}</p>}
+        {success && <p className="text-green-600 mt-2 text-sm font-medium">{success}</p>}
       </Card>
 
       {currentTicket && (
-        <Card className="p-6 bg-card border border-border border-accent">
+        <Card className="p-6 bg-card border border-border border-accent animate-slide-up">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-accent" /> Ticket de Pago
           </h2>
@@ -112,8 +124,8 @@ export function ExitAndBilling() {
               <p className="text-lg">{new Date(currentTicket.hora_entrada).toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Hora Salida</p>
-              <p className="text-lg">{currentTicket.hora_salida ? new Date(currentTicket.hora_salida).toLocaleString() : "-"}</p>
+              <p className="text-sm text-muted-foreground">Hora Salida (Est.)</p>
+              <p className="text-lg">{currentTicket.hora_salida ? new Date(currentTicket.hora_salida).toLocaleString() : "Ahora"}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Duración</p>

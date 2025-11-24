@@ -95,7 +95,7 @@ export const TicketModel = {
             const updateTicketSql = `
                 UPDATE ticket 
                 SET 
-                    estado = 'Cobrado',
+                    estado = 'Pagado',
                     hora_salida = ?,
                     monto_total = ?
                 WHERE id_ticket = ?

@@ -8,15 +8,16 @@ export const buscarTicketPorPlaca = async (req, res) => {
             return res.status(404).json({ message: "No se encontró un ticket activo para esta placa." });
         }
 
-        // Calcular preliminarmente cuánto sería si saliera AHORA
+        // Calcular cuánto sería si saliera AHORA
         const ahora = new Date();
         const calculo = TicketModel.calcularMonto(ticket.hora_entrada, ahora, ticket.precio_hora);
 
+        // CORRECCIÓN: Mapeamos los cálculos a los nombres que espera el frontend
         res.json({
             ...ticket,
-            salida_estimada: ahora,
-            duracion_estimada: calculo.tiempo_permanencia,
-            monto_estimado: calculo.monto_total
+            hora_salida: ahora, // Enviamos la hora de salida simulada
+            tiempo_permanencia: calculo.tiempo_permanencia, // Antes: duracion_estimada
+            monto_total: calculo.monto_total // Antes: monto_estimado
         });
     } catch (error) {
         console.error(error);
@@ -28,7 +29,11 @@ export const procesarPago = async (req, res) => {
     const { id_ticket, id_espacio, monto_final } = req.body;
 
     try {
-        // Aquí podríamos validar nuevamente montos, pero confiamos en el flujo por ahora
+        // Validar datos mínimos
+        if (!id_ticket || !monto_final) {
+            return res.status(400).json({ message: "Faltan datos para procesar el pago." });
+        }
+
         await TicketModel.pagarTicket(id_ticket, id_espacio, monto_final);
         res.json({ message: "Pago registrado y salida autorizada." });
     } catch (error) {
@@ -36,6 +41,7 @@ export const procesarPago = async (req, res) => {
         res.status(500).json({ message: "Error al procesar el pago" });
     }
 };
+
 export const obtenerTickets = async (req, res) => {
     try {
         const tickets = await TicketModel.obtenerTodos();
