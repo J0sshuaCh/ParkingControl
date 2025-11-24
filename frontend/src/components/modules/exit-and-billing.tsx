@@ -1,349 +1,277 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { AlertCircle, CheckCircle, Printer, Send, Trash2, Edit2 } from "lucide-react"
-
-interface Ticket {
-  id: string
-  plate: string
-  entryTime: string
-  exitTime: string
-  duration: string
-  amount: number
-  status: "Pendiente" | "Pagado" | "Inválido"
-  supervisor?: string
-  cancellationReason?: string
-}
-
-interface CancellationModalProps {
-  ticket: Ticket | null
-  onCancel: (reason: string) => void
-  onClose: () => void
-}
-
-function CancellationModal({ ticket, onCancel, onClose }: CancellationModalProps) {
-  const [reason, setReason] = useState("")
-
-  if (!ticket) return null
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md bg-card border border-border p-6 animate-slide-up">
-        <h2 className="text-xl font-bold mb-4">Anular Ticket</h2>
-        <p className="text-sm text-muted-foreground mb-4">Ticket: {ticket.id}</p>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Motivo de Anulación</label>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Describe el motivo de la anulación..."
-            className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground text-sm"
-            rows={4}
-          />
-        </div>
-        <div className="flex gap-3">
-          <Button
-            onClick={() => {
-              onCancel(reason)
-              setReason("")
-            }}
-            className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            Anular
-          </Button>
-          <Button onClick={onClose} variant="outline" className="flex-1 bg-transparent">
-            Cancelar
-          </Button>
-        </div>
-      </Card>
-    </div>
-  )
-}
+import { useState, useEffect, useCallback } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AlertCircle, CheckCircle, Printer, Search, RefreshCcw, MousePointerClick, X } from "lucide-react";
+import { buscarTicketPorPlaca, procesarPago } from "@/services/ticketService";
+import type { Ticket } from "@/services/ticketService";
+import { getVehiculosActivos, type VehiculoActivo } from "@/services/vehiculoService";
 
 export function ExitAndBilling() {
-  const [plate, setPlate] = useState("")
-  const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null)
-  const [editingAmount, setEditingAmount] = useState(false)
-  const [editedAmount, setEditedAmount] = useState("")
-  const [tickets, setTickets] = useState<Ticket[]>([
-    {
-      id: "1",
-      plate: "ABC-123",
-      entryTime: "09:30",
-      exitTime: "12:45",
-      duration: "3h 15m",
-      amount: 45000,
-      status: "Pagado",
-    },
-    {
-      id: "2",
-      plate: "XYZ-789",
-      entryTime: "10:15",
-      exitTime: "14:30",
-      duration: "4h 15m",
-      amount: 55000,
-      status: "Pagado",
-    },
-  ])
-  const [cancellationModal, setCancellationModal] = useState<Ticket | null>(null)
-  const [userRole] = useState("Supervisor")
+  // Estados de Cobro
+  const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleSearchVehicle = () => {
-    if (plate) {
-      const exitTime = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
-      const ticket: Ticket = {
-        id: Date.now().toString(),
-        plate: plate.toUpperCase(),
-        entryTime: "09:30",
-        exitTime,
-        duration: "3h 45m",
-        amount: 50000,
-        status: "Pendiente",
-      }
-      setCurrentTicket(ticket)
-      setEditedAmount(ticket.amount.toString())
-    }
-  }
+  // Estados de la Lista de Vehículos
+  const [vehicles, setVehicles] = useState<VehiculoActivo[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [listFilter, setListFilter] = useState("");
 
-  const handlePayment = () => {
-    if (currentTicket) {
-      const finalAmount = editingAmount ? Number.parseInt(editedAmount) : currentTicket.amount
-      const paidTicket = { ...currentTicket, amount: finalAmount, status: "Pagado" as const }
-      setTickets([paidTicket, ...tickets])
-      setCurrentTicket(null)
-      setPlate("")
-      setEditingAmount(false)
-      alert("Pago procesado correctamente")
+  // --- Función para cargar la lista de vehículos ---
+  const fetchVehicles = useCallback(async () => {
+    setLoadingList(true);
+    try {
+      const data = await getVehiculosActivos();
+      setVehicles(data);
+    } catch (err) {
+      console.error("Error al cargar lista de vehículos:", err);
+    } finally {
+      setLoadingList(false);
     }
-  }
+  }, []);
 
-  const handleCancelTicket = (reason: string) => {
-    if (cancellationModal) {
-      const cancelledTicket = {
-        ...cancellationModal,
-        status: "Inválido" as const,
-        cancellationReason: reason,
-      }
-      setTickets(tickets.map((t) => (t.id === cancelledTicket.id ? cancelledTicket : t)))
-      setCancellationModal(null)
-      alert("Ticket anulado correctamente")
+  useEffect(() => {
+    fetchVehicles();
+  }, [fetchVehicles]);
+
+  // --- Lógica de Selección y Búsqueda ---
+  const handleSelectVehicle = async (plate: string) => {
+    setError("");
+    setSuccess("");
+    setCurrentTicket(null);
+
+    try {
+      const ticket = await buscarTicketPorPlaca(plate.toUpperCase());
+      setCurrentTicket(ticket);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "No se encontró el ticket o el vehículo ya salió.");
     }
-  }
+  };
+
+  // --- Lógica de Pago ---
+  const handlePayment = async () => {
+    if (!currentTicket) return;
+    setError("");
+
+    try {
+      const finalAmount = currentTicket.monto_total ?? 0;
+
+      await procesarPago(currentTicket.id_ticket, currentTicket.id_espacio, finalAmount);
+
+      setSuccess(`Pago de S/. ${finalAmount.toFixed(2)} procesado exitosamente.`);
+      setCurrentTicket(null);
+      fetchVehicles();
+
+    } catch (err: any) {
+      setError(err.message || "Error al procesar el pago.");
+    }
+  };
 
   const handlePrint = () => {
-    alert("Imprimiendo ticket...")
-  }
+    alert("Imprimiendo comprobante...");
+  };
 
-  const handleSendDigital = () => {
-    alert("Ticket enviado digitalmente")
-  }
+  const handleCancel = () => {
+    setCurrentTicket(null);
+    setError("");
+    setSuccess("");
+  };
+
+  const formatDuration = (minutes: number) => {
+    if (!minutes) return "0h 0m";
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h}h ${m}m`;
+  };
+
+  // Filtrar la lista visualmente
+  const filteredVehicles = vehicles.filter(v =>
+    v.placa.includes(listFilter.toUpperCase()) ||
+    v.codigo_ticket.includes(listFilter.toUpperCase())
+  );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Salida y Cobro</h1>
-        <p className="text-muted-foreground">Registra salidas de vehículos y procesa pagos</p>
-      </div>
+    // CAMBIO: Grid de 3 columnas
+    <div className="space-y-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      <Card className="p-6 bg-card border border-border">
-        <h2 className="text-lg font-semibold mb-4">Buscar Vehículo</h2>
-        <div className="flex gap-4">
-          <Input
-            placeholder="Ingresa la placa del vehículo"
-            value={plate}
-            onChange={(e) => setPlate(e.target.value.toUpperCase())}
-            className="flex-1 bg-input border-border"
-          />
-          <Button onClick={handleSearchVehicle} className="bg-primary text-primary-foreground hover:bg-primary/90">
-            Buscar
+      {/* --- COLUMNA IZQUIERDA (2/3): LISTA DE VEHÍCULOS --- */}
+      <div className="lg:col-span-2 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Salida y Cobro</h1>
+          <p className="text-muted-foreground">Seleccione un vehículo de la lista para procesar su salida.</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            Vehículos en Parqueo
+            <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {filteredVehicles.length}
+            </span>
+          </h2>
+          <Button variant="outline" size="sm" onClick={fetchVehicles} disabled={loadingList}>
+            <RefreshCcw className={`w-4 h-4 mr-2 ${loadingList ? 'animate-spin' : ''}`} />
+            Actualizar Lista
           </Button>
         </div>
-      </Card>
 
-      {currentTicket && (
-        <Card className="p-6 bg-card border border-border border-accent">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-accent" />
-            Ticket de Pago
-          </h2>
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <p className="text-sm text-muted-foreground">Placa</p>
-              <p className="text-xl font-bold">{currentTicket.plate}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Duración</p>
-              <p className="text-xl font-bold">{currentTicket.duration}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Hora Ingreso</p>
-              <p className="text-lg">{currentTicket.entryTime}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Hora Salida</p>
-              <p className="text-lg">{currentTicket.exitTime}</p>
+        <Card className="p-0 bg-card border border-border overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-border bg-muted/30">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Filtrar por placa o número de ticket..."
+                className="pl-9 bg-background"
+                value={listFilter}
+                onChange={(e) => setListFilter(e.target.value)}
+              />
             </div>
           </div>
-          <div className="bg-muted/50 p-4 rounded-lg mb-6">
-            <p className="text-sm text-muted-foreground mb-2">Monto Total</p>
-            {!editingAmount ? (
-              <div className="flex items-center justify-between">
-                <p className="text-4xl font-bold text-accent">S/. {currentTicket.amount.toLocaleString()}</p>
-                <Button size="sm" variant="outline" onClick={() => setEditingAmount(true)} className="bg-transparent">
-                  <Edit2 className="w-4 h-4 mr-1" />
-                  Editar
-                </Button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  value={editedAmount}
-                  onChange={(e) => setEditedAmount(e.target.value)}
-                  className="flex-1 bg-input border-border text-lg font-bold"
-                />
-                <Button
-                  size="sm"
-                  onClick={() => setEditingAmount(false)}
-                  className="bg-accent text-accent-foreground hover:bg-accent/90"
-                >
-                  OK
-                </Button>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            <Button onClick={handlePayment} className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Procesar Pago
-            </Button>
-            <Button onClick={handlePrint} variant="outline" className="flex-1 bg-transparent">
-              <Printer className="w-4 h-4 mr-2" />
-              Imprimir
-            </Button>
-            <Button onClick={handleSendDigital} variant="outline" className="flex-1 bg-transparent">
-              <Send className="w-4 h-4 mr-2" />
-              Enviar
-            </Button>
-            <Button
-              onClick={() => {
-                setCurrentTicket(null)
-                setPlate("")
-                setEditingAmount(false)
-              }}
-              variant="outline"
-              className="flex-1"
-            >
-              Cancelar
-            </Button>
-          </div>
-        </Card>
-      )}
 
-      {userRole === "Supervisor" && (
-        <Card className="p-6 bg-card border border-border border-destructive/30">
-          <h2 className="text-lg font-semibold mb-4">Anular o Modificar Ticket (Supervisor)</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold">ID</th>
-                  <th className="text-left py-3 px-4 font-semibold">Placa</th>
-                  <th className="text-left py-3 px-4 font-semibold">Monto</th>
-                  <th className="text-left py-3 px-4 font-semibold">Estado</th>
-                  <th className="text-left py-3 px-4 font-semibold">Acciones</th>
+          <div className="overflow-auto max-h-[600px]">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-muted/50 text-muted-foreground sticky top-0 z-10 uppercase text-xs tracking-wider">
+                <tr>
+                  <th className="py-3 px-6 font-medium">Ticket</th>
+                  <th className="py-3 px-6 font-medium">Placa</th>
+                  <th className="py-3 px-6 font-medium hidden sm:table-cell">Ingreso</th>
+                  <th className="py-3 px-6 font-medium">Tipo</th>
+                  <th className="py-3 px-6 font-medium">Espacio</th>
+                  <th className="py-3 px-6 font-medium text-right">Acción</th>
                 </tr>
               </thead>
-              <tbody>
-                {tickets.map((ticket) => (
-                  <tr key={ticket.id} className="border-b border-border hover:bg-muted/50">
-                    <td className="py-3 px-4 font-medium">{ticket.id}</td>
-                    <td className="py-3 px-4">{ticket.plate}</td>
-                    <td className="py-3 px-4 font-semibold">S/. {ticket.amount.toLocaleString()}</td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          ticket.status === "Pagado"
-                            ? "bg-green-100 text-green-700"
-                            : ticket.status === "Inválido"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {ticket.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {ticket.status !== "Inválido" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setCancellationModal(ticket)}
-                          className="text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Anular
-                        </Button>
-                      )}
+              <tbody className="divide-y divide-border">
+                {filteredVehicles.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                      {loadingList ? "Cargando vehículos..." : "No se encontraron vehículos."}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredVehicles.map((vehicle) => {
+                    const isSelected = currentTicket?.id_ticket.toString() === vehicle.id_vehiculo.toString();
+                    return (
+                      <tr
+                        key={vehicle.id_vehiculo}
+                        className={`transition-colors hover:bg-muted/50 ${isSelected ? "bg-primary/5" : ""}`}
+                      >
+                        <td className="py-3 px-6 font-mono text-xs text-muted-foreground">{vehicle.codigo_ticket}</td>
+                        <td className="py-3 px-6 font-bold text-foreground">{vehicle.placa}</td>
+                        <td className="py-3 px-6 hidden sm:table-cell text-muted-foreground">{vehicle.hora_ingreso}</td>
+                        <td className="py-3 px-6">{vehicle.tipo_vehiculo}</td>
+                        <td className="py-3 px-6">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                            {vehicle.espacio}
+                          </span>
+                        </td>
+                        <td className="py-3 px-6 text-right">
+                          <Button
+                            size="sm"
+                            variant={isSelected ? "secondary" : "default"}
+                            onClick={() => handleSelectVehicle(vehicle.placa)}
+                            className="h-8 shadow-none"
+                            disabled={isSelected}
+                          >
+                            {isSelected ? "Seleccionado" : "Cobrar"}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
         </Card>
-      )}
+      </div>
 
-      <Card className="p-6 bg-card border border-border">
-        <h2 className="text-lg font-semibold mb-4">Historial de Pagos</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-4 font-semibold">Placa</th>
-                <th className="text-left py-3 px-4 font-semibold">Ingreso</th>
-                <th className="text-left py-3 px-4 font-semibold">Salida</th>
-                <th className="text-left py-3 px-4 font-semibold">Duración</th>
-                <th className="text-left py-3 px-4 font-semibold">Monto</th>
-                <th className="text-left py-3 px-4 font-semibold">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tickets.map((ticket) => (
-                <tr key={ticket.id} className="border-b border-border hover:bg-muted/50">
-                  <td className="py-3 px-4 font-medium">{ticket.plate}</td>
-                  <td className="py-3 px-4">{ticket.entryTime}</td>
-                  <td className="py-3 px-4">{ticket.exitTime}</td>
-                  <td className="py-3 px-4">{ticket.duration}</td>
-                  <td className="py-3 px-4 font-semibold">S/. {ticket.amount.toLocaleString()}</td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        ticket.status === "Pagado"
-                          ? "bg-green-100 text-green-700"
-                          : ticket.status === "Inválido"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {ticket.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      {/* --- COLUMNA DERECHA (1/3): PANTALLA DE COBRO --- */}
+      <div className="lg:col-span-1 space-y-6 sticky top-6">
+        {/* Mensajes de estado */}
+        {error && (
+          <Card className="p-4 bg-destructive/10 border-destructive text-destructive flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" /> {error}
+          </Card>
+        )}
+        {success && (
+          <Card className="p-4 bg-green-100 border-green-200 text-green-700 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" /> {success}
+          </Card>
+        )}
 
-      <CancellationModal
-        ticket={cancellationModal}
-        onCancel={handleCancelTicket}
-        onClose={() => setCancellationModal(null)}
-      />
+        {/* TICKET DE COBRO */}
+        {currentTicket ? (
+          <Card className="p-6 bg-card border border-primary/50 shadow-md animate-in fade-in zoom-in duration-300">
+            <div className="flex justify-between items-start mb-6 border-b border-border pb-4">
+              <div>
+                <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
+                  Ticket: {currentTicket.codigo_ticket}
+                </h2>
+                <p className="text-sm text-muted-foreground">Resumen de estancia</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 text-sm mb-6">
+              <div className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
+                <span className="text-muted-foreground">Placa</span>
+                <span className="font-bold text-lg">{currentTicket.placa}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Vehículo</span>
+                <span className="font-medium">{currentTicket.tipo_vehiculo}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Espacio</span>
+                <span className="font-medium">{currentTicket.codigo_espacio}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Hora Ingreso</span>
+                <span>{new Date(currentTicket.hora_entrada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Tiempo Total</span>
+                <span className="font-mono font-bold">{formatDuration(currentTicket.tiempo_permanencia ?? 0)}</span>
+              </div>
+            </div>
+
+            <div className="bg-primary/5 p-6 rounded-xl mb-6 text-center border border-primary/10">
+              <p className="text-xs text-muted-foreground uppercase font-bold mb-1 tracking-wider">Total a Pagar</p>
+              <p className="text-5xl font-extrabold text-primary">
+                S/. {(currentTicket.monto_total ?? 0).toFixed(2)}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Button onClick={handlePayment} className="w-full h-12 text-lg font-bold shadow-sm">
+                <CheckCircle className="w-5 h-5 mr-2" /> CONFIRMAR PAGO
+              </Button>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Button onClick={handlePrint} variant="outline" className="w-full">
+                  <Printer className="w-4 h-4 mr-2" /> Imprimir
+                </Button>
+                <Button
+                  onClick={handleCancel}
+                  variant="outline"
+                  className="w-full text-destructive border-destructive/30 hover:bg-destructive hover:text-white"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          // Estado vacío
+          <div className="hidden lg:flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-xl text-muted-foreground bg-muted/20">
+            <MousePointerClick className="w-12 h-12 mb-4 opacity-20" />
+            <p className="font-medium">Seleccione un vehículo de la lista</p>
+            <p className="text-sm">para ver el detalle de cobro</p>
+          </div>
+        )}
+      </div>
     </div>
-  )
+  );
 }

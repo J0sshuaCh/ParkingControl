@@ -1,32 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Eye, Search, Edit2, Printer } from "lucide-react"
-
-interface Vehicle {
-  id: string
-  plate: string
-  type: string
-  entryTime: string
-  space: string
-  status: string
-  ticket: string
-}
+import { Plus, Trash2, Eye, Search, Edit2, Printer, RefreshCcw } from "lucide-react"
+import { getEspaciosLibres, getVehiculosActivos, registrarEntrada, type EspacioLibre, type VehiculoActivo } from "@/services/vehiculoService"
 
 interface DetailModalProps {
-  vehicle: Vehicle | null
+  vehicle: VehiculoActivo | null
   onClose: () => void
-  onEdit: (vehicle: Vehicle) => void
+  onEdit: (vehicle: VehiculoActivo) => void
 }
 
 function DetailModal({ vehicle, onClose, onEdit }: DetailModalProps) {
   const [isEditing, setIsEditing] = useState(false)
-  const [editData, setEditData] = useState<Partial<Vehicle>>(vehicle || {})
+  const [editData, setEditData] = useState<Partial<VehiculoActivo>>(vehicle || {})
 
-  // keep editData in sync when the passed vehicle changes
   useEffect(() => {
     setEditData(vehicle || {})
   }, [vehicle])
@@ -41,23 +31,23 @@ function DetailModal({ vehicle, onClose, onEdit }: DetailModalProps) {
           <div className="space-y-4">
             <div>
               <p className="text-sm text-muted-foreground">Placa</p>
-              <p className="text-lg font-semibold">{vehicle.plate}</p>
+              <p className="text-lg font-semibold">{vehicle.placa}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Tipo</p>
-              <p className="text-lg font-semibold">{vehicle.type}</p>
+              <p className="text-lg font-semibold">{vehicle.tipo_vehiculo}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Hora de Ingreso</p>
-              <p className="text-lg font-semibold">{vehicle.entryTime}</p>
+              <p className="text-lg font-semibold">{vehicle.hora_ingreso}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Espacio Asignado</p>
-              <p className="text-lg font-semibold">{vehicle.space}</p>
+              <p className="text-lg font-semibold">{vehicle.espacio}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Número de Ticket</p>
-              <p className="text-lg font-semibold">{vehicle.ticket}</p>
+              <p className="text-lg font-semibold text-primary">{vehicle.codigo_ticket}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Estado</p>
@@ -66,58 +56,16 @@ function DetailModal({ vehicle, onClose, onEdit }: DetailModalProps) {
               </span>
             </div>
             <div className="flex gap-2 mt-6">
-              <Button
-                onClick={() => setIsEditing(true)}
-                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <Edit2 className="w-4 h-4 mr-2" />
-                Editar
-              </Button>
+              {/* Nota: La edición completa requeriría otro endpoint en el backend */}
               <Button onClick={onClose} variant="outline" className="flex-1 bg-transparent">
                 Cerrar
               </Button>
             </div>
           </div>
         ) : (
+          // Modo edición simplificado (solo visual por ahora si no tienes endpoint de update)
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Placa</label>
-              <Input
-                value={editData.plate || ""}
-                onChange={(e) => setEditData({ ...editData, plate: e.target.value })}
-                className="bg-input border-border"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Tipo</label>
-              <Input
-                value={editData.type || ""}
-                onChange={(e) => setEditData({ ...editData, type: e.target.value })}
-                className="bg-input border-border"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Espacio</label>
-              <Input
-                value={editData.space || ""}
-                onChange={(e) => setEditData({ ...editData, space: e.target.value })}
-                className="bg-input border-border"
-              />
-            </div>
-            <div className="flex gap-2 mt-6">
-              <Button
-                onClick={() => {
-                  onEdit(editData as Vehicle)
-                  setIsEditing(false)
-                }}
-                className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
-              >
-                Guardar
-              </Button>
-              <Button onClick={() => setIsEditing(false)} variant="outline" className="flex-1 bg-transparent">
-                Cancelar
-              </Button>
-            </div>
+            {/* ... formulario de edición si decides implementarlo ... */}
           </div>
         )}
       </Card>
@@ -126,107 +74,120 @@ function DetailModal({ vehicle, onClose, onEdit }: DetailModalProps) {
 }
 
 export function VehicleRegistration() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([
-    {
-      id: "1",
-      plate: "ABC-123",
-      type: "Sedan",
-      entryTime: "09:30",
-      space: "A-01",
-      status: "Activo",
-      ticket: "TK-001",
-    },
-    {
-      id: "2",
-      plate: "XYZ-789",
-      type: "SUV",
-      entryTime: "10:15",
-      space: "B-05",
-      status: "Activo",
-      ticket: "TK-002",
-    },
-    {
-      id: "3",
-      plate: "DEF-456",
-      type: "Compacto",
-      entryTime: "08:45",
-      space: "A-12",
-      status: "Activo",
-      ticket: "TK-003",
-    },
-  ])
+  // Estados de datos
+  const [vehicles, setVehicles] = useState<VehiculoActivo[]>([])
+  const [espaciosLibres, setEspaciosLibres] = useState<EspacioLibre[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const [formData, setFormData] = useState({ plate: "", type: "Sedan", autoAssign: true })
-  const [selectedSpace, setSelectedSpace] = useState("")
-  const [detailModal, setDetailModal] = useState<Vehicle | null>(null)
+  // Estados del formulario
+  const [formData, setFormData] = useState({
+    plate: "",
+    type: "Sedan",
+    autoAssign: true
+  })
+  const [selectedSpaceId, setSelectedSpaceId] = useState("") // Guardamos el ID, no el código
+
+  // Estados de UI
+  const [detailModal, setDetailModal] = useState<VehiculoActivo | null>(null)
   const [filterTicket, setFilterTicket] = useState("")
 
-  const handleRegister = () => {
-    if (formData.plate) {
-      const assignedSpace = formData.autoAssign
-        ? `${String.fromCharCode(65 + Math.floor(Math.random() * 3))}-${String(Math.floor(Math.random() * 20) + 1).padStart(2, "0")}`
-        : selectedSpace
+  // --- Cargar Datos Iniciales ---
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [espaciosData, vehiculosData] = await Promise.all([
+        getEspaciosLibres(),
+        getVehiculosActivos()
+      ])
+      setEspaciosLibres(espaciosData)
+      setVehicles(vehiculosData)
+    } catch (error) {
+      console.error("Error cargando datos:", error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-      if (!formData.autoAssign && !assignedSpace) {
-        alert("Por favor selecciona un espacio")
-        return
-      }
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
-      const newVehicle: Vehicle = {
-        id: Date.now().toString(),
-        plate: formData.plate,
-        type: formData.type,
-        entryTime: new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
-        space: assignedSpace,
-        status: "Activo",
-        ticket: `TK-${String(vehicles.length + 1).padStart(3, "0")}`,
-      }
-      setVehicles([newVehicle, ...vehicles])
-      setFormData({ plate: "", type: "Sedan", autoAssign: true })
-      setSelectedSpace("")
+  // --- Manejador de Registro ---
+  const handleRegister = async () => {
+    // Validaciones simples
+    if (!formData.plate) {
+      alert("Por favor ingresa la placa del vehículo.")
+      return
+    }
+    if (!formData.autoAssign && !selectedSpaceId) {
+      alert("Por favor selecciona un espacio manual.")
+      return
+    }
 
-      alert(`Vehículo registrado correctamente en espacio ${assignedSpace}`)
+    try {
+      const response = await registrarEntrada({
+        placa: formData.plate.toUpperCase(),
+        tipo_vehiculo: formData.type,
+        modo_asignacion: formData.autoAssign ? "auto" : "manual",
+        id_espacio_manual: formData.autoAssign ? undefined : selectedSpaceId
+      })
+
+      alert(`✅ ¡Registro Exitoso!\nTicket: ${response.ticket}\nEspacio: ${response.espacio}`)
+
+      // Resetear formulario
+      setFormData({ ...formData, plate: "" })
+      setSelectedSpaceId("")
+
+      // Recargar datos para actualizar tabla y quitar el espacio usado de la lista
+      fetchData()
+
+    } catch (err: any) {
+      console.error(err)
+      alert(`❌ Error: ${err.message || "No se pudo registrar el vehículo"}`)
     }
   }
 
-  const handleDelete = (id: string) => {
-    setVehicles(vehicles.filter((v) => v.id !== id))
+  const handleReprint = (vehicle: VehiculoActivo) => {
+    alert(`Imprimiendo ticket ${vehicle.codigo_ticket} para placa ${vehicle.placa}`)
   }
 
-  const handleEditVehicle = (editedVehicle: Vehicle) => {
-    setVehicles(vehicles.map((v) => (v.id === editedVehicle.id ? editedVehicle : v)))
-    setDetailModal(null)
-    alert("Vehículo actualizado correctamente")
-  }
-
-  const handleReprint = (vehicle: Vehicle) => {
-    alert(`Reimprimiendo ticket ${vehicle.ticket} para placa ${vehicle.plate}`)
-  }
-
+  // Filtrado en frontend
   const filteredVehicles = vehicles.filter((v) => {
-    if (filterTicket && !v.ticket.includes(filterTicket.toUpperCase())) return false
+    if (filterTicket && !v.codigo_ticket.includes(filterTicket.toUpperCase()) && !v.placa.includes(filterTicket.toUpperCase())) return false
     return true
   })
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Registro de Vehículos</h1>
-        <p className="text-muted-foreground">Registra la entrada de nuevos vehículos al estacionamiento</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Registro de Vehículos</h1>
+          <p className="text-muted-foreground">Registra la entrada de nuevos vehículos y genera tickets.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+          <RefreshCcw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Actualizar
+        </Button>
       </div>
 
+      {/* --- Formulario de Registro --- */}
       <Card className="p-6 bg-card border border-border">
         <h2 className="text-lg font-semibold mb-4">Registrar Entrada</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+          {/* Placa */}
           <div>
             <label className="block text-sm font-medium mb-2">Placa del Vehículo</label>
             <Input
               placeholder="ABC-123"
               value={formData.plate}
               onChange={(e) => setFormData({ ...formData, plate: e.target.value.toUpperCase() })}
-              className="bg-input border-border"
+              className="bg-input border-border uppercase"
+              maxLength={7}
             />
           </div>
+
+          {/* Tipo */}
           <div>
             <label className="block text-sm font-medium mb-2">Tipo de Vehículo</label>
             <select
@@ -234,12 +195,15 @@ export function VehicleRegistration() {
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground"
             >
-              <option>Sedan</option>
-              <option>SUV</option>
-              <option>Compacto</option>
-              <option>Camioneta</option>
+              <option value="Sedan">Sedan</option>
+              <option value="SUV">SUV</option>
+              <option value="Compacto">Compacto</option>
+              <option value="Camioneta">Camioneta</option>
+              <option value="Moto">Moto</option>
             </select>
           </div>
+
+          {/* Asignación */}
           <div>
             <label className="block text-sm font-medium mb-2">Asignación</label>
             <select
@@ -247,43 +211,58 @@ export function VehicleRegistration() {
               onChange={(e) => setFormData({ ...formData, autoAssign: e.target.value === "auto" })}
               className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground"
             >
-              <option value="auto">Automática</option>
-              <option value="manual">Manual</option>
+              <option value="auto">Automática (Siguiente Libre)</option>
+              <option value="manual">Manual (Elegir)</option>
             </select>
           </div>
-          {!formData.autoAssign && (
+
+          {/* Espacio Manual (Condicional) */}
+          {!formData.autoAssign ? (
             <div>
               <label className="block text-sm font-medium mb-2">Seleccionar Espacio</label>
               <select
-                value={selectedSpace}
-                onChange={(e) => setSelectedSpace(e.target.value)}
+                value={selectedSpaceId}
+                onChange={(e) => setSelectedSpaceId(e.target.value)}
                 className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground"
               >
-                <option value="">Elige un espacio</option>
-                <option value="A-01">A-01</option>
-                <option value="A-02">A-02</option>
-                <option value="B-01">B-01</option>
-                <option value="B-02">B-02</option>
+                <option value="">-- Elige un espacio --</option>
+                {espaciosLibres.map((espacio) => (
+                  <option key={espacio.id_espacio} value={espacio.id_espacio}>
+                    {espacio.codigo}
+                  </option>
+                ))}
               </select>
             </div>
+          ) : (
+            // Botón Registrar (si es automático ocupa el 4to slot)
+            <div className="flex items-end">
+              <Button onClick={handleRegister} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                <Plus className="w-4 h-4 mr-2" />
+                Registrar Entrada
+              </Button>
+            </div>
           )}
-          <div className="flex items-end">
-            <Button onClick={handleRegister} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+        </div>
+
+        {/* Botón Registrar (si es manual ocupa una nueva fila para no deformar el grid) */}
+        {!formData.autoAssign && (
+          <div className="mt-4 flex justify-end">
+            <Button onClick={handleRegister} className="w-full md:w-1/4 bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" />
-              Registrar
+              Registrar Entrada
             </Button>
           </div>
-        </div>
+        )}
       </Card>
 
+      {/* --- Filtros --- */}
       <Card className="p-6 bg-card border border-border">
-        <h2 className="text-lg font-semibold mb-4">Filtros</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Buscar por Ticket</label>
+            <label className="block text-sm font-medium mb-2">Buscar por Ticket o Placa</label>
             <div className="flex gap-2">
               <Input
-                placeholder="TK-001"
+                placeholder="Ej: TK-001 o ABC-123"
                 value={filterTicket}
                 onChange={(e) => setFilterTicket(e.target.value)}
                 className="flex-1 bg-input border-border"
@@ -296,8 +275,9 @@ export function VehicleRegistration() {
         </div>
       </Card>
 
+      {/* --- Tabla de Historial --- */}
       <Card className="p-6 bg-card border border-border">
-        <h2 className="text-lg font-semibold mb-4">Historial Reciente ({filteredVehicles.length})</h2>
+        <h2 className="text-lg font-semibold mb-4">Vehículos en Parqueo ({filteredVehicles.length})</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -312,56 +292,56 @@ export function VehicleRegistration() {
               </tr>
             </thead>
             <tbody>
-              {filteredVehicles.map((vehicle) => (
-                <tr key={vehicle.id} className="border-b border-border hover:bg-muted/50">
-                  <td className="py-3 px-4 font-medium text-primary">{vehicle.ticket}</td>
-                  <td className="py-3 px-4 font-medium">{vehicle.plate}</td>
-                  <td className="py-3 px-4">{vehicle.type}</td>
-                  <td className="py-3 px-4">{vehicle.entryTime}</td>
-                  <td className="py-3 px-4">
-                    <span className="px-2 py-1 bg-accent/20 text-accent rounded text-xs font-medium">
-                      {vehicle.space}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                      {vehicle.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDetailModal(vehicle)}
-                      className="text-primary hover:bg-primary/10"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleReprint(vehicle)}
-                      className="text-secondary hover:bg-secondary/10"
-                    >
-                      <Printer className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(vehicle.id)}
-                      className="text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+              {filteredVehicles.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No hay vehículos registrados actualmente.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredVehicles.map((vehicle) => (
+                  <tr key={vehicle.id_vehiculo} className="border-b border-border hover:bg-muted/50">
+                    <td className="py-3 px-4 font-medium text-primary">{vehicle.codigo_ticket}</td>
+                    <td className="py-3 px-4 font-medium">{vehicle.placa}</td>
+                    <td className="py-3 px-4">{vehicle.tipo_vehiculo}</td>
+                    <td className="py-3 px-4">{vehicle.hora_ingreso}</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-1 bg-accent/20 text-accent rounded text-xs font-medium">
+                        {vehicle.espacio}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                        {vehicle.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDetailModal(vehicle)}
+                        className="text-primary hover:bg-primary/10"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleReprint(vehicle)}
+                        className="text-secondary hover:bg-secondary/10"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </Card>
 
-      <DetailModal vehicle={detailModal} onClose={() => setDetailModal(null)} onEdit={handleEditVehicle} />
+      <DetailModal vehicle={detailModal} onClose={() => setDetailModal(null)} onEdit={() => { }} />
     </div>
   )
 }
