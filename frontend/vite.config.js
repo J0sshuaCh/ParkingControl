@@ -10,4 +10,25 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  manifest: {
+    name: 'Parking Control',
+    short_name: 'Parking Control',
+    description: 'Sistema de Gestión de Parking',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#ffffff',
+    theme_color: '#667eea',
+    icons: [
+      {
+        src: 'android-chrome-192x192.png',
+        sizes: '192x192',
+        type: 'image/png'
+      },
+      {
+        src: 'android-chrome-512x512.png',
+        sizes: '512x512',
+        type: 'image/png'
+      }
+    ]
+  }
 })
