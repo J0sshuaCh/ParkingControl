@@ -4,65 +4,116 @@
 
 /* Colores base en modo claro */
 :root {
-  /* Updated color palette: Professional blue primary, dark blue-gray secondary, light gray background */
+  /* Updated color palette: Professional blue primary */
   --background: oklch(0.98 0 0);
   --foreground: oklch(0.15 0 0);
+
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.15 0 0);
+
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0 0);
+
   --primary: oklch(0.45 0.15 260);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.25 0.05 250);
-  --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.92 0 0);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.55 0.18 120);
-  --accent-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.96 0 0);
+  /* Ajustado para que sea un gris muy suave en light mode */
+  --secondary-foreground: oklch(0.15 0 0);
+
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.55 0 0);
+
+  --accent: oklch(0.96 0 0);
+  /* Un gris suave para hovers */
+  --accent-foreground: oklch(0.15 0 0);
+
   --destructive: oklch(0.6 0.2 25);
   --destructive-foreground: oklch(1 0 0);
+
   --border: oklch(0.9 0 0);
-  --input: oklch(0.95 0 0);
+  --input: oklch(0.9 0 0);
   --ring: oklch(0.45 0.15 260);
+
+  /* Gráficos */
   --chart-1: oklch(0.45 0.15 260);
   --chart-2: oklch(0.55 0.18 120);
   --chart-3: oklch(0.5 0.08 180);
   --chart-4: oklch(0.6 0.2 25);
   --chart-5: oklch(0.4 0.1 60);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.15 0.02 250);
-  --sidebar-foreground: oklch(0.95 0 0);
+
+  --radius: 0.5rem;
+
+  /* Sidebar Light */
+  --sidebar: oklch(0.98 0 0);
+  --sidebar-foreground: oklch(0.15 0 0);
   --sidebar-primary: oklch(0.45 0.15 260);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.55 0.18 120);
+  --sidebar-accent: oklch(0.96 0 0);
   --sidebar-accent-foreground: oklch(0.15 0 0);
-  --sidebar-border: oklch(0.25 0 0);
+  --sidebar-border: oklch(0.9 0 0);
   --sidebar-ring: oklch(0.45 0.15 260);
 }
 
-/* Modo oscuro */
+/* Modo oscuro (Corregido y completado) */
 .dark {
-  --background: oklch(0.12 0 0);
-  --foreground: oklch(0.95 0 0);
-  --card: oklch(0.18 0 0);
-  --card-foreground: oklch(0.95 0 0);
+  --background: oklch(0.10 0 0);
+  /* Un negro un poco más profundo */
+  --foreground: oklch(0.98 0 0);
+
+  --card: oklch(20.904% 0.00002 271.152);
+  /* Tarjetas ligeramente más claras que el fondo */
+  --card-foreground: oklch(0.98 0 0);
+
+  --popover: oklch(0.12 0 0);
+  --popover-foreground: oklch(0.98 0 0);
+
   --primary: oklch(0.55 0.18 260);
-  --primary-foreground: oklch(0.12 0 0);
-  --secondary: oklch(0.35 0.08 250);
-  --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.3 0 0);
-  --muted-foreground: oklch(0.7 0 0);
-  --accent: oklch(0.6 0.2 120);
-  --accent-foreground: oklch(0.12 0 0);
-  --border: oklch(0.25 0 0);
+  /* Un azul más brillante para resaltar en oscuro */
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.20 0 0);
+  --secondary-foreground: oklch(0.98 0 0);
+
+  --muted: oklch(0.20 0 0);
+  --muted-foreground: oklch(0.65 0 0);
+
+  --accent: oklch(0.20 0 0);
+  --accent-foreground: oklch(0.98 0 0);
+
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
+
+  --border: oklch(0.20 0 0);
+  --input: oklch(0.20 0 0);
   --ring: oklch(0.55 0.18 260);
+
+  /* Gráficos Dark */
+  --chart-1: oklch(0.55 0.18 260);
+  --chart-2: oklch(0.6 0.2 120);
+  --chart-3: oklch(0.55 0.1 180);
+  --chart-4: oklch(0.65 0.25 25);
+  --chart-5: oklch(0.5 0.15 60);
+
+  /* Sidebar Dark (FALTABA ESTO) */
+  --sidebar: oklch(20.904% 0.00002 271.152);
+  /* Coincide con el color de Card */
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.55 0.18 260);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.20 0 0);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.20 0 0);
+  --sidebar-ring: oklch(0.55 0.18 260);
 }
 
 /* Capas base */
 @layer base {
   * {
-     /* @apply border border-white outline-none; */
+    @apply border-border;
+    /* Aplica el color de borde por defecto a todo */
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -86,6 +137,7 @@
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
@@ -96,10 +148,10 @@
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
-  
 }
