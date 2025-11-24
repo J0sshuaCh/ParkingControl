@@ -1,17 +1,11 @@
-import express from "express";
-import { registrarVehiculo, listarEspaciosLibres,  } from "../controllers/vehiculo.controller.js";
+import { Router } from 'express';
+import { VehiculoController } from '../controllers/vehiculo.controller.js';
 
-const router = express.Router();
+const router = Router();
 
-// Ruta para obtener los espacios y llenar el <select> (Dropdown)
-router.get('/espacios-libres', listarEspaciosLibres);
-
-// Ruta para hacer el registro (POST)
-router.post('/', registrarVehiculo);
-
-// Ruta para listar vehículos en espacios ocupados
-router.get('/ocupados', listarVehiculosEnEspaciosOcupados);
-
-// Aquí irían las demás (PUT, DELETE, GET todos...)
+// Rutas definidas en el servicio de Axios:
+router.get('/espacios-libres', VehiculoController.listarEspaciosLibres);
+router.get('/', VehiculoController.listarVehiculosActivos); // Para getVehiculosActivos
+router.post('/entrada', VehiculoController.registrarVehiculo); // Para registrarEntrada
 
 export default router;
