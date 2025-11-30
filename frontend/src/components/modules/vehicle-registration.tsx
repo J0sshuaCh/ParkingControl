@@ -306,7 +306,7 @@ export function VehicleRegistration() {
                     <td className="py-3 px-4">{vehicle.tipo_vehiculo}</td>
                     <td className="py-3 px-4">{vehicle.hora_ingreso}</td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-1 bg-accent/20 text-accent rounded text-xs font-medium">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
                         {vehicle.espacio}
                       </span>
                     </td>
@@ -328,7 +328,7 @@ export function VehicleRegistration() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleReprint(vehicle)}
-                        className="text-secondary hover:bg-secondary/10"
+                        className="text-primary hover:bg-secondary/10"
                       >
                         <Printer className="w-4 h-4" />
                       </Button>

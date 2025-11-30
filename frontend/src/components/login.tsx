@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ParkingCircle, Loader2, Eye, EyeOff, AlertCircle, LogIn } from "lucide-react"
 
-import { loginRequest } from "@/services/loginService"
+import { loginRequest } from "@/services/usuariosService"
 
 interface LoginProps {
   onLogin: (name: string) => void
