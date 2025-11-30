@@ -3,26 +3,43 @@ USE `parkingcontrol_db`;
 -- =============================================================================
 -- LIMPIEZA INICIAL
 -- =============================================================================
-DROP PROCEDURE IF EXISTS `sp_espacio_mapa_ocupacion`;
-DROP PROCEDURE IF EXISTS `sp_espacio_reservar`;
-DROP PROCEDURE IF EXISTS `sp_espacio_liberar`;
-DROP PROCEDURE IF EXISTS `sp_tarifa_crud`;
-DROP PROCEDURE IF EXISTS `sp_ticket_listar`;
-DROP PROCEDURE IF EXISTS `sp_ticket_buscar_placa`;
-DROP PROCEDURE IF EXISTS `sp_ticket_pagar`;
-DROP PROCEDURE IF EXISTS `sp_vehiculo_registrar_ingreso`;
-DROP PROCEDURE IF EXISTS `sp_vehiculo_listar_activos`;
-DROP PROCEDURE IF EXISTS `sp_insertar_usuario`;
-DROP FUNCTION IF EXISTS `fn_verificar_contrasena`;
+DROP PROCEDURE IF EXISTS `sp_usuario_obtener_por_username`;
 
-DELIMITER $$
+DROP PROCEDURE IF EXISTS `sp_usuario_listar`;
+
+DROP PROCEDURE IF EXISTS `sp_usuario_editar`;
+
+DROP PROCEDURE IF EXISTS `sp_usuario_eliminar`;
+
+DROP PROCEDURE IF EXISTS `sp_espacio_mapa_ocupacion`;
+
+DROP PROCEDURE IF EXISTS `sp_espacio_reservar`;
+
+DROP PROCEDURE IF EXISTS `sp_espacio_liberar`;
+
+DROP PROCEDURE IF EXISTS `sp_tarifa_crud`;
+
+DROP PROCEDURE IF EXISTS `sp_ticket_listar`;
+
+DROP PROCEDURE IF EXISTS `sp_ticket_buscar_placa`;
+
+DROP PROCEDURE IF EXISTS `sp_ticket_pagar`;
+
+DROP PROCEDURE IF EXISTS `sp_vehiculo_registrar_ingreso`;
+
+DROP PROCEDURE IF EXISTS `sp_vehiculo_listar_activos`;
+
+DROP PROCEDURE IF EXISTS `sp_insertar_usuario`;
+
+DROP FUNCTION IF EXISTS `fn_verificar_contrasena`;
 
 -- =============================================================================
 -- 1. SEGURIDAD Y USUARIOS (Encriptación en Base de Datos)
 -- =============================================================================
 
 DELIMITER $$
-USE `parkingcontrol_db`$$
+
+USE `parkingcontrol_db` $$
 -- function fn_verificar_contrasena
 CREATE DEFINER=`root`@`localhost` FUNCTION `fn_verificar_contrasena`(
     p_username VARCHAR(50),
@@ -51,7 +68,7 @@ DECLARE v_password_hash VARCHAR(255);
     END IF;
 END$$
 
-DELIMITER ;
+DELIMITER;
 
 -- -----------------------------------------------------
 -- procedure sp_insertar_usuario
@@ -83,11 +100,7 @@ BEGIN
     SELECT LAST_INSERT_ID() as id_usuario;
 END$$
 
-DELIMITER ;
-
--- =============================================================================
 -- 1. GESTIÓN DE ESPACIOS (Mapa y Reservas)
--- =============================================================================
 
 -- Obtener el mapa completo con estado, placa y reservas activas
 CREATE PROCEDURE `sp_espacio_mapa_ocupacion`()
@@ -160,10 +173,7 @@ BEGIN
     COMMIT;
 END$$
 
-
--- =============================================================================
 -- 2. GESTIÓN DE TARIFAS (CRUD Completo)
--- =============================================================================
 CREATE PROCEDURE `sp_tarifa_crud`(
     IN p_accion VARCHAR(10),       -- 'LISTAR', 'CREAR', 'EDITAR', 'ELIMINAR'
     IN p_id_tarifa INT,            -- NULL si no aplica
@@ -192,10 +202,7 @@ BEGIN
     END IF;
 END$$
 
-
--- =============================================================================
 -- 3. GESTIÓN DE TICKETS Y PAGOS
--- =============================================================================
 
 -- Listar historial completo de tickets
 CREATE PROCEDURE `sp_ticket_listar`()
@@ -259,10 +266,7 @@ BEGIN
     SELECT 'Ticket pagado y espacio liberado' AS mensaje;
 END$$
 
-
--- =============================================================================
 -- 4. GESTIÓN DE VEHÍCULOS (Entrada y Listado)
--- =============================================================================
 
 -- Registrar Entrada (Lógica Transaccional Compleja)
 CREATE PROCEDURE `sp_vehiculo_registrar_ingreso`(
@@ -321,4 +325,72 @@ BEGIN
     ORDER BY t.hora_entrada DESC;
 END$$
 
-DELIMITER ;
+USE `parkingcontrol_db`;
+
+-- 5. PROCEDIMIENTOS ADICIONALES PARA USUARIOS
+
+-- 1. Obtener datos del usuario (usado en el Login tras verificar contraseña)
+CREATE PROCEDURE `sp_usuario_obtener_por_username`(
+    IN p_username VARCHAR(50)
+)
+BEGIN
+    SELECT 
+        u.id_usuario, 
+        u.username, 
+        u.nombre_completo, 
+        u.email, 
+        u.estado, 
+        u.id_rol, 
+        r.nombre_rol 
+    FROM usuario u
+    JOIN rol r ON u.id_rol = r.id_rol
+    WHERE u.username = p_username;
+END$$
+
+-- 2. Listar todos los usuarios con su rol
+CREATE PROCEDURE `sp_usuario_listar`()
+BEGIN
+    SELECT 
+        u.id_usuario, 
+        u.username, 
+        u.nombre_completo, 
+        u.email, 
+        u.estado, 
+        r.nombre_rol 
+    FROM usuario u
+    JOIN rol r ON u.id_rol = r.id_rol
+    ORDER BY u.id_usuario ASC;
+END$$
+
+-- 3. Editar usuario
+-- Nota: Usamos IFNULL para mantener el valor actual si envías NULL desde el backend
+CREATE PROCEDURE `sp_usuario_editar`(
+    IN p_id_usuario INT,
+    IN p_nombre_completo VARCHAR(100),
+    IN p_email VARCHAR(100),
+    IN p_estado ENUM('Activo', 'Ausente'),
+    IN p_id_rol INT
+)
+BEGIN
+    UPDATE usuario
+    SET 
+        nombre_completo = IFNULL(p_nombre_completo, nombre_completo),
+        email = IFNULL(p_email, email),
+        estado = IFNULL(p_estado, estado),
+        id_rol = IFNULL(p_id_rol, id_rol)
+    WHERE id_usuario = p_id_usuario;
+
+    -- Devolver cuántas filas se afectaron (0 si no hubo cambios o no existe)
+    SELECT ROW_COUNT() as afectados;
+END$$
+
+-- 4. Eliminar usuario
+CREATE PROCEDURE `sp_usuario_eliminar`(
+    IN p_id_usuario INT
+)
+BEGIN
+    DELETE FROM usuario WHERE id_usuario = p_id_usuario;
+    SELECT ROW_COUNT() as afectados;
+END$$
+
+DELIMITER;

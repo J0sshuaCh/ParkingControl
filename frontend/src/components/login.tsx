@@ -9,7 +9,7 @@ import { ParkingCircle, Loader2, Eye, EyeOff, AlertCircle, LogIn } from "lucide-
 import { loginRequest } from "@/services/usuariosService"
 
 interface LoginProps {
-  onLogin: (name: string) => void
+  onLogin: (user: any) => void
 }
 
 function PasswordInput({ value, onChange, disabled }: { value: string, onChange: (val: string) => void, disabled: boolean }) {
@@ -73,9 +73,11 @@ export function Login({ onLogin }: LoginProps) {
 
       // Manejo robusto de la respuesta del usuario
       if (data && data.user) {
-        onLogin(data.user.nombre_completo);
+        // Pasamos el objeto usuario completo
+        onLogin(data.user);
       } else {
-        onLogin(username);
+        // Fallback por si acaso
+        onLogin({ nombre_completo: username, nombre_rol: 'Operador' });
       }
 
     } catch (err: any) {

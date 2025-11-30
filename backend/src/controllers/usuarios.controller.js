@@ -10,7 +10,7 @@ export const UsuarioController = {
 
         try {
             const results = await UsuarioModel.login(username, password);
-            
+
             if (results.length === 0) {
                 return res.status(401).json({ message: "Usuario o contraseña incorrectos" });
             }
@@ -25,7 +25,8 @@ export const UsuarioController = {
                     nombre_completo: user.nombre_completo, // Importante para el frontend
                     email: user.email,
                     estado: user.estado,
-                    id_rol: user.id_rol
+                    id_rol: user.id_rol,
+                    nombre_rol: user.nombre_rol // Agregamos el nombre del rol para el frontend
                 }
             });
 
@@ -36,16 +37,16 @@ export const UsuarioController = {
     },
 
     registerUsuario: async (req, res) => {
-        const { username, password, email, id_rol } = req.body;
+        const { username, password, email, id_rol, nombre_completo } = req.body;
         // Fecha creación automática si no viene
         const fecha_creacion = new Date();
 
-        if (!username || !password || !id_rol) {
+        if (!username || !password || !id_rol || !nombre_completo) {
             return res.status(400).json({ message: "Faltan datos obligatorios" });
         }
 
         try {
-            const result = await UsuarioModel.register(username, password, email, id_rol, fecha_creacion);
+            const result = await UsuarioModel.register(username, password, email, id_rol, fecha_creacion, nombre_completo);
 
             // CORRECCIÓN: Usamos 'result' (singular) y verificamos affectedRows
             if (result.affectedRows === 0) {
@@ -82,7 +83,7 @@ export const UsuarioController = {
         try {
             const result = await UsuarioModel.editarUsuario(id_usuario, datos);
             if (result.affectedRows === 0) return res.status(404).json({ message: "Usuario no encontrado" });
-            
+
             return res.json({ message: "Usuario actualizado con éxito" });
         } catch (err) {
             console.error("Error al editar usuario:", err);

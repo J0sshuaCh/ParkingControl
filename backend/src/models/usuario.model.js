@@ -1,80 +1,83 @@
 import { db } from "../database/connection.js";
 
 export const UsuarioModel = {
-    // LOGIN: Delegamos la verificación a la función SQL
-    login: async (username, password) => { 
+    // LOGIN
+    login: async (username, password) => {
         try {
-            // 1. Verificamos si la contraseña es correcta usando la función de la DB
+            // 1. Verificamos contraseña (función SQL existente)
             const sqlCheck = "SELECT fn_verificar_contrasena(?, ?) AS es_valido";
             const [checkRows] = await db.query(sqlCheck, [username, password]);
-            
+
             if (checkRows[0].es_valido === 0) {
-                return []; // Retorna vacío si no coincide
+                return [];
             }
 
-            // 2. Si es válido, traemos los datos del usuario (SIN la contraseña)
-            const sqlUser = `
-                SELECT id_usuario, username, nombre_completo, email, estado, id_rol 
-                FROM usuario 
-                WHERE username = ?
-            `;
-            const [userRows] = await db.query(sqlUser, [username]);
-            return userRows;
-            
+            // 2. Si es válido, traemos los datos usando el NUEVO SP
+            // Reemplaza el SELECT directo por CALL
+            const sqlUser = "CALL sp_usuario_obtener_por_username(?)";
+            const [result] = await db.query(sqlUser, [username]);
+
+            // Los SP devuelven los resultados en un array anidado: [[RowDataPacket], OkPacket]
+            // Por eso retornamos result[0]
+            return result[0];
+
         } catch (error) {
             console.error("Error en UsuarioModel.login:", error);
-            throw error; 
+            throw error;
         }
     },
 
-    // REGISTRO: Usamos el SP que encripta automáticamente
-    register: async (username, password, email, id_rol, fecha_creacion) => {
+    // REGISTRO
+    register: async (username, password, email, id_rol, fecha_creacion, nombre_completo) => {
         try {
-            // Llamamos al SP. Nota: El orden de parámetros debe coincidir con la definición del SP
             const sql = "CALL sp_insertar_usuario(?, ?, ?, ?, ?)";
-            
-            // El nombre completo no venía en tu controlador original, 
-            // asumiré que usas el username o deberías agregarlo al frontend.
-            // Por ahora enviamos username como nombre si no hay otro.
-            const nombre_completo = username; 
 
             const [result] = await db.query(sql, [
-                username, 
-                password, // Enviamos texto plano, el SP lo encripta
-                email, 
-                nombre_completo, 
+                username,
+                password,
+                email,
+                nombre_completo,
                 id_rol
             ]);
-            
-            // En llamadas CALL, el resultado suele venir anidado
-            return result[0][0]; // Devuelve { id_usuario: ... }
+
+            return result[0][0];
 
         } catch (error) {
             console.error("Error en UsuarioModel.register:", error);
             throw error;
-        }        
+        }
     },
 
+    // LISTAR: Adaptado a SP
     listarUsuario: async () => {
-        // Hacemos un JOIN para traer el nombre del rol en lugar de solo el número
-        const sql = `
-            SELECT u.id_usuario, u.username, u.nombre_completo, u.email, u.estado, r.nombre_rol 
-            FROM usuario u
-            JOIN rol r ON u.id_rol = r.id_rol
-        `;
         try {
+            const sql = "CALL sp_usuario_listar()";
             const [rows] = await db.query(sql);
-            return rows;
+            // rows[0] contiene el array de usuarios
+            return rows[0];
         } catch (error) {
             console.error("Error en UsuarioModel.listarUsuario:", error);
             throw error;
         }
     },
 
+    // EDITAR: Adaptado a SP
     editarUsuario: async (id_usuario, datos) => {
-        const sql = "UPDATE usuario SET ? WHERE id_usuario = ?";
         try {
-            const [result] = await db.query(sql, [datos, id_usuario]);
+            const sql = "CALL sp_usuario_editar(?, ?, ?, ?, ?)";
+
+            // Desestructuramos para garantizar el orden de los parámetros del SP
+            // Usamos || null para que si el dato no viene, se envíe NULL y el SP mantenga el valor viejo
+            const { nombre_completo, email, estado, id_rol } = datos;
+
+            const [result] = await db.query(sql, [
+                id_usuario,
+                nombre_completo || null,
+                email || null,
+                estado || null,
+                id_rol || null
+            ]);
+
             return result;
         } catch (error) {
             console.error("Error en UsuarioModel.editarUsuario:", error);
@@ -82,9 +85,10 @@ export const UsuarioModel = {
         }
     },
 
+    // ELIMINAR: Adaptado a SP
     eliminarUsuario: async (id_usuario) => {
-        const sql = "DELETE FROM usuario WHERE id_usuario = ?";
         try {
+            const sql = "CALL sp_usuario_eliminar(?)";
             const [result] = await db.query(sql, [id_usuario]);
             return result;
         } catch (error) {
