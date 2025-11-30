@@ -55,11 +55,41 @@ export const UsuarioModel = {
         }        
     },
 
-    // ... (listar, editar, eliminar se mantienen igual)
     listarUsuario: async () => {
-        const sql = "SELECT id_usuario, username, nombre_completo, email, estado, id_rol FROM usuario";
-        const [rows] = await db.query(sql);
-        return rows;
+        // Hacemos un JOIN para traer el nombre del rol en lugar de solo el número
+        const sql = `
+            SELECT u.id_usuario, u.username, u.nombre_completo, u.email, u.estado, r.nombre_rol 
+            FROM usuario u
+            JOIN rol r ON u.id_rol = r.id_rol
+        `;
+        try {
+            const [rows] = await db.query(sql);
+            return rows;
+        } catch (error) {
+            console.error("Error en UsuarioModel.listarUsuario:", error);
+            throw error;
+        }
     },
-    // ...
+
+    editarUsuario: async (id_usuario, datos) => {
+        const sql = "UPDATE usuario SET ? WHERE id_usuario = ?";
+        try {
+            const [result] = await db.query(sql, [datos, id_usuario]);
+            return result;
+        } catch (error) {
+            console.error("Error en UsuarioModel.editarUsuario:", error);
+            throw error;
+        }
+    },
+
+    eliminarUsuario: async (id_usuario) => {
+        const sql = "DELETE FROM usuario WHERE id_usuario = ?";
+        try {
+            const [result] = await db.query(sql, [id_usuario]);
+            return result;
+        } catch (error) {
+            console.error("Error en UsuarioModel.eliminarUsuario:", error);
+            throw error;
+        }
+    }
 };
