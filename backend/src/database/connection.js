@@ -3,7 +3,7 @@ import mysql from 'mysql2/promise'; // 1. Usa la versión Promise
 const config = {
     host: 'localhost',
     user: 'root', // Usando tu credencial anterior
-    password: 'Nicolas2013', // Usando tu credencial anterior
+    password: '', // Usando tu credencial anterior
     database: 'parkingcontrol_db',
     waitForConnections: true,
     // 2. Usar un Pool de Conexiones, no una conexión simple.
