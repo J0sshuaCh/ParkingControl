@@ -45,6 +45,14 @@ export const procesarPago = async (req, res) => {
 export const obtenerTickets = async (req, res) => {
     try {
         const tickets = await TicketModel.obtenerTodos();
+
+        // Filtrar por estado si se proporciona en el query param
+        const { estado } = req.query;
+        if (estado) {
+            const ticketsFiltrados = tickets.filter(t => t.estado === estado);
+            return res.json(ticketsFiltrados);
+        }
+
         res.json(tickets);
     } catch (err) {
         console.error(err);

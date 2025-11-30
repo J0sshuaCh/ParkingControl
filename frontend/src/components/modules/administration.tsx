@@ -13,6 +13,19 @@ import { getUsuarios, createUsuario, deleteUsuario, updateUsuario, type Usuario 
 interface DailyReport {
   date: string; revenue: number; vehicles: number; occupancy: number;
 }
+
+interface PaidTicket {
+  id_ticket: number;
+  codigo_ticket: string;
+  hora_entrada: string;
+  hora_salida: string;
+  tiempo_permanencia: number;
+  monto_total: number;
+  placa: string;
+  tipo_vehiculo: string;
+  codigo_espacio: string;
+}
+
 interface AuditRecord {
   id: string; timestamp: string; user: string; action: string; ticketId?: string; previousAmount?: number; newAmount?: number; reason?: string;
 }
@@ -34,10 +47,10 @@ function EditUserModal({ user, onClose, onSave }: { user: Usuario | null, onClos
   const [formData, setFormData] = useState<Partial<Usuario>>({})
   const [roleName, setRoleName] = useState("")
 
-  useEffect(() => { 
+  useEffect(() => {
     if (user) {
-      setFormData({ 
-        nombre_completo: user.nombre_completo, 
+      setFormData({
+        nombre_completo: user.nombre_completo,
         email: user.email,
         username: user.username,
         estado: user.estado
@@ -52,7 +65,7 @@ function EditUserModal({ user, onClose, onSave }: { user: Usuario | null, onClos
   const handleSave = () => {
     // Convertimos el nombre del rol seleccionado a su ID
     const id_rol = ROLES[roleName] || 3;
-    
+
     onSave(user.id_usuario, {
       ...formData,
       id_rol: id_rol // Enviamos el ID del rol para que la DB lo entienda
@@ -70,51 +83,51 @@ function EditUserModal({ user, onClose, onSave }: { user: Usuario | null, onClos
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium mb-1">Nombre Completo</label>
-            <Input 
-              value={formData.nombre_completo || ''} 
-              onChange={(e) => setFormData({...formData, nombre_completo: e.target.value})} 
+            <Input
+              value={formData.nombre_completo || ''}
+              onChange={(e) => setFormData({ ...formData, nombre_completo: e.target.value })}
               className="bg-input border-border"
             />
           </div>
           <div>
             <label className="text-sm font-medium mb-1">Usuario</label>
-            <Input 
-              value={formData.username || ''} 
-              onChange={(e) => setFormData({...formData, username: e.target.value})} 
+            <Input
+              value={formData.username || ''}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               className="bg-input border-border"
             />
           </div>
           <div>
             <label className="text-sm font-medium mb-1">Email</label>
-            <Input 
-              value={formData.email || ''} 
-              onChange={(e) => setFormData({...formData, email: e.target.value})} 
+            <Input
+              value={formData.email || ''}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="bg-input border-border"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-                <label className="text-sm font-medium mb-1">Rol</label>
-                <select 
-                className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground" 
-                value={roleName} 
+              <label className="text-sm font-medium mb-1">Rol</label>
+              <select
+                className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground"
+                value={roleName}
                 onChange={(e) => setRoleName(e.target.value)}
-                >
+              >
                 <option>Operador</option>
                 <option>Supervisor</option>
                 <option>Administrador</option>
-                </select>
+              </select>
             </div>
             <div>
-                <label className="text-sm font-medium mb-1">Estado</label>
-                <select 
-                className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground" 
-                value={formData.estado} 
-                onChange={(e) => setFormData({...formData, estado: e.target.value})}
-                >
+              <label className="text-sm font-medium mb-1">Estado</label>
+              <select
+                className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground"
+                value={formData.estado}
+                onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
+              >
                 <option value="Activo">Activo</option>
                 <option value="Ausente">Ausente</option>
-                </select>
+              </select>
             </div>
           </div>
 
@@ -130,9 +143,9 @@ function EditUserModal({ user, onClose, onSave }: { user: Usuario | null, onClos
 function EditTarifaModal({ tarifa, onClose, onSave }: { tarifa: Tarifa | null, onClose: () => void, onSave: (id: number, data: Partial<Tarifa>) => void }) {
   const [formData, setFormData] = useState<Partial<Tarifa>>({})
 
-  useEffect(() => { 
+  useEffect(() => {
     if (tarifa) {
-      setFormData({ precio_hora: tarifa.precio_hora, estado: tarifa.estado }) 
+      setFormData({ precio_hora: tarifa.precio_hora, estado: tarifa.estado })
     }
   }, [tarifa])
 
@@ -148,23 +161,23 @@ function EditTarifaModal({ tarifa, onClose, onSave }: { tarifa: Tarifa | null, o
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium mb-1">Precio (S/.)</label>
-            <Input 
-              type="number" 
-              step="0.10" 
-              value={formData.precio_hora?.toString() || ''} 
+            <Input
+              type="number"
+              step="0.10"
+              value={formData.precio_hora?.toString() || ''}
               onChange={(e) => {
-                 const val = parseFloat(e.target.value);
-                 setFormData({...formData, precio_hora: isNaN(val) ? 0 : val})
-              }} 
+                const val = parseFloat(e.target.value);
+                setFormData({ ...formData, precio_hora: isNaN(val) ? 0 : val })
+              }}
               className="bg-input border-border"
             />
           </div>
           <div>
             <label className="text-sm font-medium mb-1">Estado</label>
-            <select 
-              className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground" 
-              value={formData.estado} 
-              onChange={(e) => setFormData({...formData, estado: e.target.value})}
+            <select
+              className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground"
+              value={formData.estado}
+              onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
             >
               <option value="En vigencia">En vigencia</option>
               <option value="Pasado">Pasado</option>
@@ -186,12 +199,12 @@ export function Administration() {
   const [editingTarifa, setEditingTarifa] = useState<Tarifa | null>(null)
   const [editingUser, setEditingUser] = useState<Usuario | null>(null) // Nuevo estado
   // Estado formulario nuevo usuario
-  const [newUser, setNewUser] = useState({ 
-    nombre_completo: "", 
-    username: "", 
-    password: "", 
-    email: "", 
-    roleName: "Operador" 
+  const [newUser, setNewUser] = useState({
+    nombre_completo: "",
+    username: "",
+    password: "",
+    email: "",
+    roleName: "Operador"
   })
 
   // Estado formulario nueva tarifa
@@ -202,6 +215,9 @@ export function Administration() {
     { date: "Lunes", revenue: 450000, vehicles: 120, occupancy: 65 },
     { date: "Martes", revenue: 520000, vehicles: 145, occupancy: 75 },
   ])
+
+  const [paidTickets, setPaidTickets] = useState<PaidTicket[]>([]) // Estado para tickets pagados
+
   const [auditHistory] = useState<AuditRecord[]>([
     { id: "1", timestamp: "2024-01-15 14:30", user: "María García", action: "Anular Ticket", ticketId: "TK-001" },
   ])
@@ -216,6 +232,18 @@ export function Administration() {
       console.error("Error cargando datos:", error)
     }
   }, [])
+
+  const loadPaidTickets = async () => {
+    try {
+      const res = await fetch('http://localhost:8800/api/tickets?estado=Pagado');
+      if (!res.ok) throw new Error('Error al cargar tickets pagados');
+      const data = await res.json();
+      setPaidTickets(data);
+    } catch (error) {
+      console.error(error);
+      alert("Error al cargar reporte de tickets pagados");
+    }
+  }
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -245,13 +273,13 @@ export function Administration() {
   }
   const handleUpdateUser = async (id: number, data: Partial<Usuario>) => {
     try {
-        await updateUsuario(id, data)
-        alert("Usuario actualizado correctamente")
-        loadData()
-        setEditingUser(null)
+      await updateUsuario(id, data)
+      alert("Usuario actualizado correctamente")
+      loadData()
+      setEditingUser(null)
     } catch (error: any) {
-        console.error(error)
-        alert("Error al actualizar usuario: " + (error.message || "Error desconocido"))
+      console.error(error)
+      alert("Error al actualizar usuario: " + (error.message || "Error desconocido"))
     }
   }
 
@@ -314,41 +342,41 @@ export function Administration() {
           <TabsTrigger value="audit">Auditoría</TabsTrigger>
         </TabsList>
 
- {/* --- TAB USUARIOS --- */}
+        {/* --- TAB USUARIOS --- */}
         <TabsContent value="users" className="space-y-4">
           <Card className="p-6 bg-card border border-border">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-primary" /> Registrar Nuevo Usuario
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Input 
-                placeholder="Nombre Completo" 
+              <Input
+                placeholder="Nombre Completo"
                 value={newUser.nombre_completo}
-                onChange={(e) => setNewUser({ ...newUser, nombre_completo: e.target.value })} 
+                onChange={(e) => setNewUser({ ...newUser, nombre_completo: e.target.value })}
                 className="bg-input border-border"
               />
-              <Input 
-                placeholder="Usuario (Login)" 
+              <Input
+                placeholder="Usuario (Login)"
                 value={newUser.username}
-                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} 
+                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
                 className="bg-input border-border"
               />
-              <Input 
+              <Input
                 type="email"
-                placeholder="Correo Electrónico" 
+                placeholder="Correo Electrónico"
                 value={newUser.email}
-                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} 
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                 className="bg-input border-border"
               />
-              <Input 
+              <Input
                 type="password"
-                placeholder="Contraseña" 
+                placeholder="Contraseña"
                 value={newUser.password}
-                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} 
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                 className="bg-input border-border"
               />
-              <select 
-                value={newUser.roleName} 
+              <select
+                value={newUser.roleName}
                 onChange={(e) => setNewUser({ ...newUser, roleName: e.target.value })}
                 className="flex h-10 w-full rounded-md border border-input bg-input text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
@@ -356,7 +384,7 @@ export function Administration() {
                 <option>Supervisor</option>
                 <option>Administrador</option>
               </select>
-              
+
               <Button onClick={handleAddUser} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                 <Plus className="w-4 h-4 mr-2" /> Crear Usuario
               </Button>
@@ -384,23 +412,21 @@ export function Administration() {
                       <td className="p-3">{user.username}</td>
                       <td className="p-3 text-muted-foreground">{user.email}</td>
                       <td className="p-3">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          user.nombre_rol === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${user.nombre_rol === 'administrador' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
                           {user.nombre_rol?.toUpperCase()}
                         </span>
                       </td>
                       <td className="p-3">
-                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                             user.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                         }`}>
-                           {user.estado}
-                         </span>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                          {user.estado}
+                        </span>
                       </td>
                       <td className="p-3 flex justify-end gap-2">
                         {/* Botón EDITAR conectado */}
                         <Button variant="ghost" size="sm" onClick={() => setEditingUser(user)} className="text-primary hover:bg-primary/10">
-                            <Edit2 className="w-4 h-4" />
+                          <Edit2 className="w-4 h-4" />
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.id_usuario)} className="text-destructive hover:bg-destructive/10">
                           <Trash2 className="w-4 h-4" />
@@ -416,93 +442,123 @@ export function Administration() {
             </div>
           </Card>
         </TabsContent>
-        
+
         {/* --- TAB TARIFAS --- */}
         <TabsContent value="rates" className="space-y-4">
-            <Card className="p-6 bg-card border border-border">
-                <h2 className="text-lg font-semibold mb-4">Agregar Nueva Tarifa</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <select 
-                        value={newRate.tipo_vehiculo} 
-                        onChange={(e) => setNewRate({ ...newRate, tipo_vehiculo: e.target.value })} 
-                        className="flex h-10 w-full rounded-md border border-input bg-input text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                     >
-                        <option value="Sedan">Sedan</option>
-                        <option value="SUV">SUV</option>
-                        <option value="Compacto">Compacto</option>
-                        <option value="Camioneta">Camioneta</option>
-                        <option value="Moto">Moto</option>
-                     </select>
-                     <Input 
-                        type="number" 
-                        placeholder="Precio" 
-                        value={newRate.precio_hora} 
-                        onChange={(e) => setNewRate({ ...newRate, precio_hora: e.target.value })} 
-                        className="bg-input border-border"
-                     />
-                     <Button onClick={handleAddRate} className="bg-primary text-primary-foreground"><Plus className="mr-2 h-4 w-4"/> Agregar</Button>
-                </div>
-            </Card>
-            <Card className="p-6 bg-card border border-border">
-                <h2 className="text-lg font-semibold mb-4">Tarifas Vigentes</h2>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
-                            <tr><th className="p-3">Vehículo</th><th className="p-3">Precio</th><th className="p-3">Estado</th><th className="p-3 text-right">Acciones</th></tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {rates.map(r => (
-                                <tr key={r.id_tarifa} className="hover:bg-muted/50 transition-colors">
-                                    <td className="p-3 font-medium">{r.tipo_vehiculo}</td>
-                                    <td className="p-3 font-bold text-primary">S/. {Number(r.precio_hora).toFixed(2)}</td>
-                                    <td className="p-3">
-                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                            {r.estado}
-                                        </span>
-                                    </td>
-                                    <td className="p-3 text-right flex justify-end gap-2">
-                                        <Button size="sm" variant="ghost" onClick={() => setEditingTarifa(r)} className="text-primary hover:bg-primary/10"><Edit2 className="h-4 w-4"/></Button>
-                                        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRate(r.id_tarifa)}><Trash2 className="h-4 w-4"/></Button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
+          <Card className="p-6 bg-card border border-border">
+            <h2 className="text-lg font-semibold mb-4">Agregar Nueva Tarifa</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <select
+                value={newRate.tipo_vehiculo}
+                onChange={(e) => setNewRate({ ...newRate, tipo_vehiculo: e.target.value })}
+                className="flex h-10 w-full rounded-md border border-input bg-input text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="Sedan">Sedan</option>
+                <option value="SUV">SUV</option>
+                <option value="Compacto">Compacto</option>
+                <option value="Camioneta">Camioneta</option>
+                <option value="Moto">Moto</option>
+              </select>
+              <Input
+                type="number"
+                placeholder="Precio"
+                value={newRate.precio_hora}
+                onChange={(e) => setNewRate({ ...newRate, precio_hora: e.target.value })}
+                className="bg-input border-border"
+              />
+              <Button onClick={handleAddRate} className="bg-primary text-primary-foreground"><Plus className="mr-2 h-4 w-4" /> Agregar</Button>
+            </div>
+          </Card>
+          <Card className="p-6 bg-card border border-border">
+            <h2 className="text-lg font-semibold mb-4">Tarifas Vigentes</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
+                  <tr><th className="p-3">Vehículo</th><th className="p-3">Precio</th><th className="p-3">Estado</th><th className="p-3 text-right">Acciones</th></tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {rates.map(r => (
+                    <tr key={r.id_tarifa} className="hover:bg-muted/50 transition-colors">
+                      <td className="p-3 font-medium">{r.tipo_vehiculo}</td>
+                      <td className="p-3 font-bold text-primary">S/. {Number(r.precio_hora).toFixed(2)}</td>
+                      <td className="p-3">
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          {r.estado}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right flex justify-end gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => setEditingTarifa(r)} className="text-primary hover:bg-primary/10"><Edit2 className="h-4 w-4" /></Button>
+                        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRate(r.id_tarifa)}><Trash2 className="h-4 w-4" /></Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </TabsContent>
 
         {/* --- OTROS TABS --- */}
         <TabsContent value="reports">
-            <Card className="p-6 bg-card border border-border">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><BarChart3 className="w-5 h-5" /> Generar Reportes</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <Input type="date" className="bg-input border-border" />
-                   <Input type="date" className="bg-input border-border" />
-                </div>
-                <div className="flex gap-3 mt-4">
-                    <Button className="bg-primary text-primary-foreground">Generar Reporte</Button>
-                    <Button onClick={handleExportExcel} variant="outline" className="gap-2"><Download className="w-4 h-4"/> Exportar Excel</Button>
-                </div>
-            </Card>
+          <Card className="p-6 bg-card border border-border">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><BarChart3 className="w-5 h-5" /> Reporte de Tickets Pagados</h2>
+            <div className="flex gap-3 mb-4">
+              <Button onClick={loadPaidTickets} className="bg-primary text-primary-foreground">Actualizar Reporte</Button>
+              <Button onClick={handleExportExcel} variant="outline" className="gap-2"><Download className="w-4 h-4" /> Exportar Excel</Button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
+                  <tr>
+                    <th className="p-3">Ticket</th>
+                    <th className="p-3">Placa</th>
+                    <th className="p-3">Vehículo</th>
+                    <th className="p-3">Entrada</th>
+                    <th className="p-3">Salida</th>
+                    <th className="p-3">Tiempo (min)</th>
+                    <th className="p-3">Monto</th>
+                    <th className="p-3">Espacio</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {paidTickets.map((t) => (
+                    <tr key={t.id_ticket} className="hover:bg-muted/50 transition-colors">
+                      <td className="p-3 font-medium">{t.codigo_ticket}</td>
+                      <td className="p-3">{t.placa}</td>
+                      <td className="p-3">{t.tipo_vehiculo}</td>
+                      <td className="p-3">{new Date(t.hora_entrada).toLocaleString()}</td>
+                      <td className="p-3">{new Date(t.hora_salida).toLocaleString()}</td>
+                      <td className="p-3">{t.tiempo_permanencia}</td>
+                      <td className="p-3 font-bold text-green-600">S/. {Number(t.monto_total).toFixed(2)}</td>
+                      <td className="p-3">{t.codigo_espacio}</td>
+                    </tr>
+                  ))}
+                  {paidTickets.length === 0 && (
+                    <tr><td colSpan={8} className="text-center p-8 text-muted-foreground">No hay tickets pagados registrados o no se ha cargado el reporte.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </TabsContent>
 
         <TabsContent value="audit">
-            <Card className="p-6 bg-card border border-border">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><History className="w-5 h-5" /> Historial</h2>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
-                            <tr><th className="p-3">Acción</th><th className="p-3">Usuario</th><th className="p-3">Detalle</th></tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {auditHistory.map(r => (
-                                <tr key={r.id} className="hover:bg-muted/50"><td className="p-3">{r.action}</td><td className="p-3">{r.user}</td><td className="p-3 text-muted-foreground">{r.ticketId}</td></tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
+          <Card className="p-6 bg-card border border-border">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><History className="w-5 h-5" /> Historial</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
+                  <tr><th className="p-3">Acción</th><th className="p-3">Usuario</th><th className="p-3">Detalle</th></tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {auditHistory.map(r => (
+                    <tr key={r.id} className="hover:bg-muted/50"><td className="p-3">{r.action}</td><td className="p-3">{r.user}</td><td className="p-3 text-muted-foreground">{r.ticketId}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </TabsContent>
 
       </Tabs>
