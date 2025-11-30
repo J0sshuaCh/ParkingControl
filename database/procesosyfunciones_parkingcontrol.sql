@@ -58,25 +58,32 @@ DELIMITER ;
 -- -----------------------------------------------------
 
 DELIMITER $$
-USE `parkingcontrol_db`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_insertar_usuario`(
+
+CREATE PROCEDURE `sp_insertar_usuario`(
     IN p_username VARCHAR(50),
     IN p_password VARCHAR(255),
-    IN p_email	  VARCHAR(100),
+    IN p_email VARCHAR(100),
     IN p_nombre_completo VARCHAR(100),
-    IN p_id_rol INT,
-    IN p_id_usuario INT
+    IN p_id_rol INT
 )
 BEGIN
-    -- Insertar el nuevo usuario con la contraseña cifrada
-    INSERT INTO usuario (username, password, nombre_completo, id_rol, fecha_creacion, estado, email)
-    VALUES (p_username, SHA2(p_password, 256), p_nombre_completo, p_id_rol, NOW(), 'Activo', p_email);
+    -- Insertar usando SHA2 para la contraseña y 'Activo' por defecto
+    INSERT INTO `usuario` (username, password, nombre_completo, id_rol, fecha_creacion, estado, email)
+    VALUES (
+        p_username, 
+        SHA2(p_password, 256), -- Encriptación nativa
+        p_nombre_completo, 
+        p_id_rol, 
+        NOW(), 
+        'Activo', 
+        p_email
+    );
+    
+    -- Devolver el ID generado para que el backend lo reciba
     SELECT LAST_INSERT_ID() as id_usuario;
 END$$
 
 DELIMITER ;
-
-DELIMITER $$
 
 -- =============================================================================
 -- 1. GESTIÓN DE ESPACIOS (Mapa y Reservas)

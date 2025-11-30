@@ -186,9 +186,11 @@ DEFAULT CHARACTER SET = utf8mb3;
 -- Inicialización de Datos
 -- -----------------------------------------------------
 
--- 1. Insertar el rol 'admin'
-INSERT IGNORE INTO rol (id_rol, nombre_rol, descripcion) VALUES (1, 'admin', 'Administrador del sistema');
-
+-- 1. Insertar los roles
+INSERT IGNORE INTO rol (id_rol, nombre_rol, descripcion) VALUES
+(1, 'admin', 'Administrador del sistema'), 
+(2, 'supervisor', 'Supervisor de turno y caja'),
+(3, 'operador', 'Encargado de registro y cobro');
 -- 2. Insertar usuario 'admin'
 INSERT IGNORE INTO usuario (id_usuario, username, password, nombre_completo, email, estado, fecha_creacion, id_rol)
 VALUES (1, 'admin', 'admin', 'Administrador', 'admin@correo.com', 'Activo', NOW(), 1);
