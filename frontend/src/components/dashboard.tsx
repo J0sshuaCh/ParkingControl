@@ -42,15 +42,13 @@ export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
       case "spaces":
         return <SpaceManagement />
       case "reports":
-        return <ReportsModule />
-      //   case "shifts":
-      //     return <ShiftManagement />
-      //   case "config":
-      //     return <SystemConfiguration />
+        // Protección extra: Si no es admin, no renderiza
+        if (userRole.toLowerCase() !== "administrador") return <DashboardOverview />
+        else return <ReportsModule />
       case "admin":
         // Protección extra: Si no es admin, no renderiza
         if (userRole.toLowerCase() !== "administrador") return <DashboardOverview />
-        return <Administration />
+        else return <Administration />
       default:
         return <DashboardOverview />
     }
