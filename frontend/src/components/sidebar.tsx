@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Car, CreditCard, Grid3x3, Settings, ParkingCircle, LayoutDashboard, Clock, Sliders, ChevronLeft, ChevronRight, Moon, Sun, BarChart3, FileText } from "lucide-react"
+import { Car, CreditCard, Grid3x3, Settings, ParkingCircle, LayoutDashboard, Clock, ChevronLeft, ChevronRight, Moon, Sun, BarChart3, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
 
