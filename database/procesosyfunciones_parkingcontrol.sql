@@ -341,76 +341,145 @@ USE `parkingcontrol_db`;
 -- 5. PROCEDIMIENTOS ADICIONALES PARA USUARIOS
 -- =============================================================================
 
-DELIMITER ;  -- 1. IMPORTANTE: Regresamos al delimitador normal (;)
+DELIMITER;
+-- 1. IMPORTANTE: Regresamos al delimitador normal (;)
 USE `parkingcontrol_db`;
-DELIMITER $$ -- 2. IMPORTANTE: Volvemos a cambiar a ($$) para los procedimientos
+
+DELIMITER $$
+-- 2. IMPORTANTE: Volvemos a cambiar a ($$) para los procedimientos
 
 -- 1. Obtener datos del usuario (usado en el Login tras verificar contraseña)
-DROP PROCEDURE IF EXISTS `sp_usuario_obtener_por_username`$$
-CREATE PROCEDURE `sp_usuario_obtener_por_username`(
-    IN p_username VARCHAR(50)
-)
-BEGIN
-    SELECT 
-        u.id_usuario, 
-        u.username, 
-        u.nombre_completo, 
-        u.email, 
-        u.estado, 
-        u.id_rol, 
-        r.nombre_rol 
-    FROM usuario u
+DROP PROCEDURE IF EXISTS `sp_usuario_obtener_por_username` $$
+CREATE PROCEDURE `sp_usuario_obtener_por_username` (IN p_username VARCHAR(50)) BEGIN
+SELECT u.id_usuario, u.username, u.nombre_completo, u.email, u.estado, u.id_rol, r.nombre_rol
+FROM usuario u
     JOIN rol r ON u.id_rol = r.id_rol
-    WHERE u.username = p_username;
-END$$
+WHERE
+    u.username = p_username;
+
+END $$
 
 -- 2. Listar todos los usuarios con su rol
-DROP PROCEDURE IF EXISTS `sp_usuario_listar`$$
-CREATE PROCEDURE `sp_usuario_listar`()
-BEGIN
-    SELECT 
-        u.id_usuario, 
-        u.username, 
-        u.nombre_completo, 
-        u.email, 
-        u.estado, 
-        r.nombre_rol 
-    FROM usuario u
+DROP PROCEDURE IF EXISTS `sp_usuario_listar` $$
+CREATE PROCEDURE `sp_usuario_listar` () BEGIN
+SELECT u.id_usuario, u.username, u.nombre_completo, u.email, u.estado, r.nombre_rol
+FROM usuario u
     JOIN rol r ON u.id_rol = r.id_rol
-    ORDER BY u.id_usuario ASC;
-END$$
+ORDER BY u.id_usuario ASC;
+
+END $$
 
 -- 3. Editar usuario
-DROP PROCEDURE IF EXISTS `sp_usuario_editar`$$
-CREATE PROCEDURE `sp_usuario_editar`(
+DROP PROCEDURE IF EXISTS `sp_usuario_editar` $$
+CREATE PROCEDURE `sp_usuario_editar` (
     IN p_id_usuario INT,
     IN p_nombre_completo VARCHAR(100),
     IN p_email VARCHAR(100),
     IN p_estado ENUM('Activo', 'Ausente'),
     IN p_id_rol INT
-)
-BEGIN
-    UPDATE usuario
-    SET 
-        nombre_completo = IFNULL(p_nombre_completo, nombre_completo),
-        email = IFNULL(p_email, email),
-        estado = IFNULL(p_estado, estado),
-        id_rol = IFNULL(p_id_rol, id_rol)
-    WHERE id_usuario = p_id_usuario;
+) BEGIN
+UPDATE usuario
+SET
+    nombre_completo = IFNULL(
+        p_nombre_completo,
+        nombre_completo
+    ),
+    email = IFNULL(p_email, email),
+    estado = IFNULL(p_estado, estado),
+    id_rol = IFNULL(p_id_rol, id_rol)
+WHERE
+    id_usuario = p_id_usuario;
 
-    -- Devolver cuántas filas se afectaron
-    SELECT ROW_COUNT() as afectados;
-END$$
+-- Devolver cuántas filas se afectaron
+SELECT ROW_COUNT() as afectados;
+
+END $$
 
 -- 4. Eliminar usuario
-DROP PROCEDURE IF EXISTS `sp_usuario_eliminar`$$
-CREATE PROCEDURE `sp_usuario_eliminar`(
-    IN p_id_usuario INT
+DROP PROCEDURE IF EXISTS `sp_usuario_eliminar` $$
+CREATE PROCEDURE `sp_usuario_eliminar` (IN p_id_usuario INT) BEGIN
+DELETE FROM usuario
+WHERE
+    id_usuario = p_id_usuario;
+
+SELECT ROW_COUNT() as afectados;
+
+END $$
+
+-- =============================================================================
+-- 5. PROCEDIMIENTOS ADICIONALES PARA REPORTES
+-- =============================================================================
+
+DELIMITER;
+
+USE `parkingcontrol_db`;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS `sp_reporte_avanzado` $$
+
+CREATE PROCEDURE `sp_reporte_avanzado`(
+    IN p_fecha_inicio DATE,
+    IN p_fecha_fin DATE,
+    IN p_id_usuario_filtro INT,   -- Opcional: ID del empleado a evaluar (NULL para todos)
+    IN p_id_usuario_generador INT,-- Quién solicita el reporte (Admin/Supervisor)
+    IN p_formato VARCHAR(20)      -- 'PDF' o 'Excel' (para registro)
 )
 BEGIN
-    DELETE FROM usuario WHERE id_usuario = p_id_usuario;
-    SELECT ROW_COUNT() as afectados;
+    DECLARE v_total_ingresos DECIMAL(10,2);
+    DECLARE v_total_vehiculos INT;
+    DECLARE v_promedio_permanencia DECIMAL(10,2);
+    DECLARE v_id_reporte INT;
+
+    -- 1. Calcular Métricas Generales (Tickets PAGADOS en ese rango)
+    SELECT 
+        COALESCE(SUM(monto_total), 0),
+        COUNT(*),
+        COALESCE(AVG(tiempo_permanencia), 0)
+    INTO 
+        v_total_ingresos,
+        v_total_vehiculos,
+        v_promedio_permanencia
+    FROM ticket
+    WHERE estado = 'Pagado'
+    AND DATE(hora_salida) BETWEEN p_fecha_inicio AND p_fecha_fin
+    AND (p_id_usuario_filtro IS NULL OR id_usuario_salida = p_id_usuario_filtro);
+
+    -- 2. Guardar el Historial del Reporte (Requisito de "almacenar 6 meses")
+    INSERT INTO reporte (
+        tipo_reporte, fecha_generacion, fecha_inicio, fecha_fin, 
+        total_ingresos, total_vehiculos, promedio_ocupacion, 
+        formato, id_usuario_generador
+    ) VALUES (
+        'Final', NOW(), p_fecha_inicio, p_fecha_fin,
+        v_total_ingresos, v_total_vehiculos, v_promedio_permanencia,
+        p_formato, p_id_usuario_generador
+    );
+    
+    SET v_id_reporte = LAST_INSERT_ID();
+
+    -- 3. RESULT SET 1: Resumen General (Para Tarjetas Informativas)
+    SELECT 
+        v_id_reporte AS id_reporte,
+        v_total_ingresos AS total_ingresos,
+        v_total_vehiculos AS total_vehiculos,
+        ROUND(v_promedio_permanencia, 2) AS promedio_minutos_permanencia,
+        IFNULL(v_total_ingresos / NULLIF(v_total_vehiculos, 0), 0) AS ticket_promedio;
+
+    -- 4. RESULT SET 2: Desglose Diario (Para Gráficos de Línea/Barra)
+    SELECT 
+        DATE(hora_salida) as fecha,
+        COUNT(*) as cantidad_vehiculos,
+        SUM(monto_total) as ingresos_dia
+    FROM ticket
+    WHERE estado = 'Pagado'
+    AND DATE(hora_salida) BETWEEN p_fecha_inicio AND p_fecha_fin
+    AND (p_id_usuario_filtro IS NULL OR id_usuario_salida = p_id_usuario_filtro)
+    GROUP BY DATE(hora_salida)
+    ORDER BY fecha ASC;
+
 END$$
 
-DELIMITER ; 
+DELIMITER;
+
 -- Fin del script
