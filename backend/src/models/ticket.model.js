@@ -17,7 +17,7 @@ export const TicketModel = {
         try {
             const [rows] = await db.query("CALL sp_ticket_buscar_placa(?)", [placa]);
             // Retorna el primer resultado o undefined
-            return rows[0][0]; 
+            return rows[0][0];
         } catch (error) {
             console.error("Error en buscarPorPlaca:", error);
             throw error;
@@ -48,6 +48,17 @@ export const TicketModel = {
             return true;
         } catch (error) {
             console.error("Error en TicketModel.pagarTicket:", error);
+            throw error;
+        }
+    },
+
+    // Historial Semanal
+    obtenerHistorialSemanal: async (start, end) => {
+        try {
+            const [rows] = await db.query("CALL sp_ticket_historial_semanal(?, ?)", [start, end]);
+            return rows[0];
+        } catch (error) {
+            console.error("Error en TicketModel.obtenerHistorialSemanal:", error);
             throw error;
         }
     }
