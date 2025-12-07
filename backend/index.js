@@ -4,6 +4,7 @@ import vehiculoRoutes from './src/routes/vehiculo.routes.js';
 import espaciosRoutes from './src/routes/espacio.routes.js';
 import tarifaRoutes from './src/routes/tarifa.routes.js';
 import ticketRoutes from './src/routes/ticket.routes.js';
+import dashboardRoutes from './src/routes/dashboard.routes.js';
 
 import cors from "cors"
 
@@ -30,4 +31,5 @@ app.use('/api/vehiculos', vehiculoRoutes);
 app.use('/api/espacios', espaciosRoutes);
 app.use('/api/tarifas', tarifaRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 

@@ -8,7 +8,7 @@ import { Car, Lock, CheckCircle, ParkingCircle, X, AlertTriangle, Map } from "lu
 
 // --- Importar el servicio de espacios ---
 // RUTA CORREGIDA: Incluimos .js para asegurar que el compilador resuelva el módulo transpuesto.
-import { getMapaOcupacion, reservarEspacio, liberarEspacio } from "@/services/espaciosService.js" 
+import { getMapaOcupacion, reservarEspacio, liberarEspacio } from "@/services/espaciosService.js"
 
 // --- CONFIGURACIÓN BASE ---
 const USER_ID = 1; // HARDCODED: Esto debe ser dinámico desde el contexto de autenticación
@@ -22,7 +22,7 @@ type SpaceStatus = "libre" | "ocupado" | "reservado"
 interface Space {
   id: string // Código del espacio, Ej: "A-01" (Viene de e.codigo en la BD)
   // 'dbId' es el id_espacio numérico de la base de datos
-  dbId?: number; 
+  dbId?: number;
   status: SpaceStatus
   vehiclePlate?: string // Placa del vehículo si está ocupado
   reservedFor?: string // Motivo de la reserva
@@ -40,10 +40,10 @@ function ReserveModal({ space, onClose, onConfirm }: any) {
   const handleConfirm = () => {
     if (reason && duration) {
       onConfirm(space.id, reason, duration)
-      onClose() 
+      onClose()
     } else {
       console.log("Por favor, ingrese el motivo y la duración.")
-      alert("Por favor, ingrese el motivo y la duración.") 
+      alert("Por favor, ingrese el motivo y la duración.")
     }
   }
 
@@ -67,9 +67,12 @@ function ReserveModal({ space, onClose, onConfirm }: any) {
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Duración</label>
+            <label className="text-sm font-medium">Duración (Horas)</label>
             <Input
-              placeholder="Ej: 2 horas, Fin del día"
+              type="number"
+              min="1"
+              max="24"
+              placeholder="Ej: 2"
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
               className="bg-input border-border"
@@ -96,6 +99,89 @@ function ReserveModal({ space, onClose, onConfirm }: any) {
   )
 }
 
+
+// --- COMPONENTE MODAL DE DETALLE DE RESERVA ---
+function ReservationDetailsModal({ space, onClose, onCancel }: any) {
+  const [timeLeft, setTimeLeft] = useState("Calculando...");
+
+  useEffect(() => {
+    if (!space?.reservedUntil) {
+      setTimeLeft("N/A");
+      return;
+    }
+
+    const updateTimer = () => {
+      const end = new Date(space.reservedUntil);
+
+      // Validar fecha
+      if (isNaN(end.getTime())) {
+        setTimeLeft("Fecha Inválida");
+        return;
+      }
+
+      const now = new Date();
+      const diffMs = end.getTime() - now.getTime();
+
+      if (diffMs <= 0) {
+        setTimeLeft("Vencido");
+        return;
+      }
+
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      setTimeLeft(`${hours}h ${minutes}m`);
+    };
+
+    updateTimer(); // Ejecutar inmediatamente
+    const interval = setInterval(updateTimer, 60000); // Actualizar cada minuto
+
+    return () => clearInterval(interval);
+  }, [space]);
+
+  if (!space) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md bg-card border border-border p-6 animate-slide-up">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Detalle de Reserva: {space.id}</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+        <div className="space-y-4">
+          <div className="p-4 bg-muted rounded-md space-y-2">
+            <div className="flex justify-between">
+              <span className="font-medium">Motivo:</span>
+              <span>{space.reservedFor || "N/A"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Vence:</span>
+              <span>{space.reservedUntil ? new Date(space.reservedUntil).toLocaleString() : "N/A"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Tiempo Restante:</span>
+              <span className="font-bold text-primary">{timeLeft}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-6">
+            <Button
+              onClick={() => onCancel(space.id)}
+              variant="destructive"
+              className="flex-1"
+            >
+              Liberar Espacio
+            </Button>
+            <Button onClick={onClose} variant="outline" className="flex-1">
+              Cerrar
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  )
+}
 
 // --- COMPONENTE ALERTA DE CAPACIDAD (para HU9) ---
 function CapacityAlert({ show, onClose }: { show: boolean, onClose: () => void }) {
@@ -140,6 +226,7 @@ export function SpaceManagement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [modalSpace, setModalSpace] = useState<Space | null>(null)
+  const [detailsSpace, setDetailsSpace] = useState<Space | null>(null)
   const [showAlert, setShowAlert] = useState(false)
 
   // --- Función de Carga de Datos (HU7) ---
@@ -149,7 +236,7 @@ export function SpaceManagement() {
     try {
       // USANDO EL SERVICIO
       const data = await getMapaOcupacion();
-      
+
       // Mapeamos los datos del backend y los guardamos
       setSpaces(data.map(s => ({ ...s, dbId: s.dbId })));
     } catch (err: any) {
@@ -198,34 +285,33 @@ export function SpaceManagement() {
     duration: string,
   ) => {
     try {
-        await reservarEspacio(spaceId, reason, duration, USER_ID);
-        fetchSpaces(); 
-        setModalSpace(null);
-        console.log(`Espacio ${spaceId} reservado exitosamente.`)
+      await reservarEspacio(spaceId, reason, parseInt(duration), USER_ID);
+      fetchSpaces();
+      setModalSpace(null);
+      console.log(`Espacio ${spaceId} reservado exitosamente.`)
 
     } catch (err: any) {
-        console.error("Error al confirmar reserva:", err);
-        alert(`Error al reservar: ${err.message || 'Error de conexión'}`);
+      console.error("Error al confirmar reserva:", err);
+      alert(`Error al reservar: ${err.message || 'Error de conexión'}`);
     }
   }
-
-  // Manejador para cancelar una reserva (lógica extra: PUT /liberar)
   const handleCancelReservation = async (spaceId: string) => {
     const spaceToFree = spaces.find(s => s.id === spaceId);
     if (!spaceToFree || !spaceToFree.dbId) {
-        alert("Error: ID numérico del espacio no encontrado para liberar.");
-        return;
+      alert("Error: ID numérico del espacio no encontrado para liberar.");
+      return;
     }
 
     try {
-        if (window.confirm(`¿Desea liberar y eliminar la reserva del espacio ${spaceId}?`)) {
-            await liberarEspacio(spaceToFree.dbId); 
-            fetchSpaces(); // Actualizar el mapa
-            console.log(`Espacio ${spaceId} liberado exitosamente.`);
-        }
+      if (window.confirm(`¿Desea liberar y eliminar la reserva del espacio ${spaceId}?`)) {
+        await liberarEspacio(spaceToFree.dbId);
+        fetchSpaces(); // Actualizar el mapa
+        setDetailsSpace(null); // Cerrar modal de detalle
+        console.log(`Espacio ${spaceId} liberado exitosamente.`);
+      }
     } catch (err: any) {
-        console.error("Error al cancelar reserva:", err);
-        alert(`Error al cancelar reserva: ${err.message || 'Error de conexión'}`);
+      console.error("Error al cancelar reserva:", err);
+      alert(`Error al cancelar reserva: ${err.message || 'Error de conexión'}`);
     }
   }
 
@@ -235,9 +321,7 @@ export function SpaceManagement() {
       setModalSpace(space) // Abrir modal de reserva (HU8)
     }
     if (space.status === "reservado") {
-      if (confirm(`¿Desea cancelar la reserva del espacio ${space.id}?`)) {
-         handleCancelReservation(space.id) 
-      }
+      setDetailsSpace(space) // Abrir modal de detalles
     }
   }
 
@@ -267,19 +351,19 @@ export function SpaceManagement() {
 
   if (loading) {
     return (
-        <Card className="p-6 text-center text-muted-foreground">
-            Cargando mapa de ocupación...
-        </Card>
+      <Card className="p-6 text-center text-muted-foreground">
+        Cargando mapa de ocupación...
+      </Card>
     );
   }
-  
+
   if (error) {
     return (
-        <Card className="p-6 text-center text-destructive border-destructive">
-            <AlertTriangle className="w-5 h-5 mx-auto mb-2" />
-            {error}
-            <Button className="mt-4" onClick={fetchSpaces}>Reintentar Carga</Button>
-        </Card>
+      <Card className="p-6 text-center text-destructive border-destructive">
+        <AlertTriangle className="w-5 h-5 mx-auto mb-2" />
+        {error}
+        <Button className="mt-4" onClick={fetchSpaces}>Reintentar Carga</Button>
+      </Card>
     );
   }
 
@@ -323,20 +407,18 @@ export function SpaceManagement() {
             <div className="flex justify-between items-center mb-1">
               <p className="text-sm text-muted-foreground">Capacidad</p>
               <p
-                className={`text-lg font-bold ${
-                  stats.capacityPercent === 100 ? "text-destructive" : "text-foreground"
-                }`}
+                className={`text-lg font-bold ${stats.capacityPercent === 100 ? "text-destructive" : "text-foreground"
+                  }`}
               >
                 {stats.capacityPercent}%
               </p>
             </div>
             <div className="w-full bg-input rounded-full h-2.5">
               <div
-                className={`h-2.5 rounded-full ${
-                  stats.capacityPercent === 100
-                    ? "bg-destructive"
-                    : "bg-primary"
-                }`}
+                className={`h-2.5 rounded-full ${stats.capacityPercent === 100
+                  ? "bg-destructive"
+                  : "bg-primary"
+                  }`}
                 style={{ width: `${stats.capacityPercent}%` }}
               ></div>
             </div>
@@ -383,6 +465,11 @@ export function SpaceManagement() {
         space={modalSpace}
         onClose={() => setModalSpace(null)}
         onConfirm={handleConfirmReservation}
+      />
+      <ReservationDetailsModal
+        space={detailsSpace}
+        onClose={() => setDetailsSpace(null)}
+        onCancel={handleCancelReservation}
       />
       <CapacityAlert show={showAlert} onClose={() => setShowAlert(false)} />
     </div>

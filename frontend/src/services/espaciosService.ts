@@ -12,9 +12,9 @@ export interface Space {
     id: string; // Código del espacio, Ej: "A-01"
     dbId?: number; // <<-- CORRECCIÓN: Ahora incluido para resolver el error de tipado en el componente
     status: SpaceStatus;
-    vehiclePlate?: string; 
-    reservedFor?: string; 
-    reservedUntil?: string; 
+    vehiclePlate?: string;
+    reservedFor?: string;
+    reservedUntil?: string;
 }
 
 /**
@@ -24,7 +24,7 @@ export interface Space {
 export const getMapaOcupacion = async (): Promise<Space[]> => {
     try {
         const res = await axios.get(API_URL);
-        return res.data; 
+        return res.data;
     } catch (err: any) {
         throw err.response?.data || { message: "Error al obtener el mapa de ocupación." };
     }
@@ -34,9 +34,9 @@ export const getMapaOcupacion = async (): Promise<Space[]> => {
  * HU8: Crea una nueva reserva para un espacio.
  */
 export const reservarEspacio = async (
-    spaceId: string, 
-    reason: string, 
-    duration: string, 
+    spaceId: string,
+    reason: string,
+    duration: number,
     id_usuario_creador: number // Asumiendo el tipo de usuario es number
 ) => {
     try {

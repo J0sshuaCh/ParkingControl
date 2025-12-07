@@ -105,13 +105,23 @@ END$$
 -- Obtener el mapa completo con estado, placa y reservas activas
 CREATE PROCEDURE `sp_espacio_mapa_ocupacion`()
 BEGIN
+    -- Auto-liberacion de espacios con reservas vencidas
+    UPDATE espacio e 
+    SET estado = 'libre' 
+    WHERE estado = 'reservado' 
+    AND NOT EXISTS (
+        SELECT 1 FROM reserva r 
+        WHERE r.id_espacio = e.id_espacio 
+        AND r.fecha_fin > NOW()
+    );
+
     SELECT 
         e.id_espacio AS dbId,
         e.codigo AS id,
         LOWER(e.estado) AS status,
         COALESCE(v.placa, NULL) AS vehiclePlate,
         COALESCE(r.motivo, NULL) AS reservedFor,
-        COALESCE(r.duracion, NULL) AS reservedUntil
+        COALESCE(DATE_FORMAT(r.fecha_fin, '%Y-%m-%dT%H:%i:%s'), NULL) AS reservedUntil
     FROM 
         espacio e 
     LEFT JOIN 
@@ -127,7 +137,7 @@ END$$
 CREATE PROCEDURE `sp_espacio_reservar`(
     IN p_codigo_espacio VARCHAR(10),
     IN p_motivo VARCHAR(255),
-    IN p_duracion VARCHAR(100),
+    IN p_duracion_horas INT,
     IN p_id_usuario INT
 )
 BEGIN
@@ -156,7 +166,7 @@ BEGIN
              SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El espacio no está disponible para reservar.';
         ELSE
             INSERT INTO reserva (motivo, duracion, id_espacio, id_usuario_creador, fecha_inicio, fecha_fin)
-            VALUES (p_motivo, p_duracion, v_id_espacio, p_id_usuario, NOW(), DATE_ADD(NOW(), INTERVAL 1 DAY));
+            VALUES (p_motivo, CONCAT(p_duracion_horas, ' horas'), v_id_espacio, p_id_usuario, NOW(), DATE_ADD(NOW(), INTERVAL p_duracion_horas HOUR));
             
             SELECT LAST_INSERT_ID() AS id_reserva, 'Espacio reservado exitosamente' AS mensaje;
         END IF;
