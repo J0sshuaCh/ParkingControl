@@ -283,24 +283,50 @@ BEGIN
     COMMIT;
 END$$
 
--- Historial semanal
+-- Historial semanal (Incluyendo Reservas)
 CREATE PROCEDURE `sp_ticket_historial_semanal`(
     IN p_fecha_inicio DATE,
     IN p_fecha_fin DATE
 )
 BEGIN
+    -- 1. Tickets Normales
     SELECT 
-        t.id_ticket, t.codigo_ticket, 
+        t.id_ticket, 
+        t.codigo_ticket, 
         DATE_FORMAT(t.hora_entrada, '%Y-%m-%d %H:%i') as hora_entrada,
         DATE_FORMAT(t.hora_salida, '%Y-%m-%d %H:%i') as hora_salida,
-        t.tiempo_permanencia, t.monto_total, t.estado, t.motivo_anulacion,
-        v.placa, v.tipo_vehiculo,
+        t.tiempo_permanencia, 
+        t.monto_total, 
+        t.estado, 
+        t.motivo_anulacion,
+        v.placa, 
+        v.tipo_vehiculo,
         e.codigo as codigo_espacio
     FROM ticket t
     JOIN vehiculos v ON t.id_vehiculo = v.id_vehiculo
     JOIN espacio e ON t.id_espacio = e.id_espacio
     WHERE DATE(t.hora_entrada) BETWEEN p_fecha_inicio AND p_fecha_fin
-    ORDER BY t.hora_entrada DESC;
+
+    UNION ALL
+
+    -- 2. Reservas (Mapeadas como tickets)
+    SELECT 
+        (r.id_reserva * -1) as id_ticket, -- ID negativo para diferenciar
+        CONCAT('RES-', r.id_reserva) as codigo_ticket,
+        DATE_FORMAT(r.fecha_inicio, '%Y-%m-%d %H:%i') as hora_entrada,
+        DATE_FORMAT(r.fecha_fin, '%Y-%m-%d %H:%i') as hora_salida,
+        TIMESTAMPDIFF(MINUTE, r.fecha_inicio, r.fecha_fin) as tiempo_permanencia,
+        NULL as monto_total,
+        'Reservado' as estado,
+        r.motivo as motivo_anulacion, -- Usamos este campo para el motivo
+        'RESERVADO' as placa,
+        'N/A' as tipo_vehiculo,
+        e.codigo as codigo_espacio
+    FROM reserva r
+    JOIN espacio e ON r.id_espacio = e.id_espacio
+    WHERE DATE(r.fecha_inicio) BETWEEN p_fecha_inicio AND p_fecha_fin
+
+    ORDER BY hora_entrada DESC;
 END$$
 
 -- Buscar ticket activo para cobrar

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Car, CreditCard, Grid3x3, Settings, ParkingCircle, LayoutDashboard, Clock, Sliders, ChevronLeft, ChevronRight, Moon, Sun } from "lucide-react"
+import { Car, CreditCard, Grid3x3, Settings, ParkingCircle, LayoutDashboard, Clock, Sliders, ChevronLeft, ChevronRight, Moon, Sun, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
 
@@ -19,6 +19,7 @@ export function Sidebar({ activeModule, onModuleChange, userRole }: SidebarProps
     { id: "overview", label: "Panel de Control", icon: LayoutDashboard },
     { id: "vehicles", label: "Registro de Vehículos", icon: Car },
     { id: "billing", label: "Salida y Cobro", icon: CreditCard },
+    { id: "history", label: "Historial de Tickets", icon: FileText },
     { id: "spaces", label: "Gestión de Espacios", icon: Grid3x3 },
     { id: "admin", label: "Administración", icon: Settings },
   ]

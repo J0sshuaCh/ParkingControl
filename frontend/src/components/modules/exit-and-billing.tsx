@@ -4,16 +4,18 @@ import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, CheckCircle, Printer, Search, RefreshCcw, MousePointerClick, X } from "lucide-react";
+import { AlertCircle, CheckCircle, Printer, Search, RefreshCcw, MousePointerClick, X, Edit2 } from "lucide-react";
 import { buscarTicketPorPlaca, procesarPago } from "@/services/ticketService";
 import type { Ticket } from "@/services/ticketService";
 import { getVehiculosActivos, type VehiculoActivo } from "@/services/vehiculoService";
+import { DetailModal } from "./vehicle-registration";
 
 export function ExitAndBilling() {
   // Estados de Cobro
   const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [detailModalVehicle, setDetailModalVehicle] = useState<VehiculoActivo | null>(null);
 
   // Estados de la Lista de Vehículos
   const [vehicles, setVehicles] = useState<VehiculoActivo[]>([]);
@@ -167,7 +169,19 @@ export function ExitAndBilling() {
                             {vehicle.espacio}
                           </span>
                         </td>
-                        <td className="py-3 px-6 text-right">
+                        <td className="py-3 px-6 text-right flex gap-2 justify-end">
+                          {/* Botón Detalles/Editar/Anular */}
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setDetailModalVehicle(vehicle)}
+                            title="Editar / Anular"
+                            className="shadow-sm"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+
+                          {/* Botón Cobrar (Distintivo) */}
                           <Button
                             size="sm"
                             variant={isSelected ? "secondary" : "default"}
@@ -272,6 +286,18 @@ export function ExitAndBilling() {
           </div>
         )}
       </div>
-    </div>
+
+      <DetailModal
+        vehicle={detailModalVehicle}
+        onClose={() => setDetailModalVehicle(null)}
+        onEdit={(updatedVehicle) => {
+          // Actualizar la lista localmente si se editó
+          setVehicles(prev => prev.map(v => v.id_vehiculo === updatedVehicle.id_vehiculo ? updatedVehicle : v))
+        }}
+        onAnulate={(id) => {
+          setVehicles(prev => prev.filter(v => v.id_vehiculo !== id));
+        }}
+      />
+    </div >
   );
 }
