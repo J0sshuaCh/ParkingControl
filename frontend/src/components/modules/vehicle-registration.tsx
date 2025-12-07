@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Trash2, Eye, Search, Edit2, Printer, RefreshCcw } from "lucide-react"
-import { getEspaciosLibres, getVehiculosActivos, registrarEntrada, type EspacioLibre, type VehiculoActivo } from "@/services/vehiculoService"
+import { getEspaciosLibres, getVehiculosActivos, registrarEntrada, verificarPlaca, type EspacioLibre, type VehiculoActivo } from "@/services/vehiculoService"
 
 interface DetailModalProps {
   vehicle: VehiculoActivo | null
@@ -119,12 +119,29 @@ export function VehicleRegistration() {
       alert("Por favor ingresa la placa del vehículo.")
       return
     }
+
+    // VALIDACIÓN 1: Verificar formato (Debe tener guion)
+    if (!formData.plate.includes("-")) {
+      alert("La placa debe incluir un guión (ej: ABC-123).")
+      return;
+    }
+
     if (!formData.autoAssign && !selectedSpaceId) {
       alert("Por favor selecciona un espacio manual.")
       return
     }
 
     try {
+      setLoading(true); // Bloquear UI
+
+      // VALIDACIÓN 2: Verificar si ya existe en BD
+      const existe = await verificarPlaca(formData.plate.toUpperCase());
+      if (existe) {
+        alert(`❌ Error: El vehículo con placa ${formData.plate} ya se encuentra DENTRO del estacionamiento.`);
+        setLoading(false);
+        return;
+      }
+
       const response = await registrarEntrada({
         placa: formData.plate.toUpperCase(),
         tipo_vehiculo: formData.type,
@@ -144,6 +161,8 @@ export function VehicleRegistration() {
     } catch (err: any) {
       console.error(err)
       alert(`❌ Error: ${err.message || "No se pudo registrar el vehículo"}`)
+    } finally {
+      setLoading(false);
     }
   }
 

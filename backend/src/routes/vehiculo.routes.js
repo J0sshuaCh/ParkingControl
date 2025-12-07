@@ -6,6 +6,7 @@ const router = Router();
 // Rutas definidas en el servicio de Axios:
 router.get('/espacios-libres', VehiculoController.listarEspaciosLibres);
 router.get('/', VehiculoController.listarVehiculosActivos); // Para getVehiculosActivos
+router.get('/verificar/:placa', VehiculoController.verificarPlaca); // Validar antes de registrar
 router.post('/entrada', VehiculoController.registrarVehiculo); // Para registrarEntrada
 
 export default router;

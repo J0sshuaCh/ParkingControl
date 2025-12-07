@@ -28,13 +28,13 @@ export const VehiculoModel = {
             const params = [placa, tipoVehiculo, idEspacio, idTarifa, codigoTicket, idUsuario];
 
             const [result] = await db.query(sql, params);
-            
+
             // Recuperamos los datos que devuelve el SP
-            const data = result[0][0]; 
-            
-            return { 
-                id_vehiculo: data.id_vehiculo, 
-                codigo_ticket: data.ticket 
+            const data = result[0][0];
+
+            return {
+                id_vehiculo: data.id_vehiculo,
+                codigo_ticket: data.ticket
             };
         } catch (error) {
             console.error("Error en VehiculoModel.registrarIngreso:", error);
@@ -49,6 +49,21 @@ export const VehiculoModel = {
             return rows[0];
         } catch (error) {
             console.error("Error en obtenerVehiculosEnParqueo:", error);
+            throw error;
+        }
+    },
+
+    // 5. Verificar si una placa tiene un ticket activo
+    verificarPlacaActiva: async (placa) => {
+        try {
+            // Reutilizamos sp_ticket_buscar_placa que busca tickets 'Emitido' para esa placa
+            const sql = "CALL sp_ticket_buscar_placa(?)";
+            const [rows] = await db.query(sql, [placa]);
+            // rows[0] contiene los resultados del primer SELECT del SP
+            // Si hay un resultado, significa que el vehículo está dentro
+            return rows[0].length > 0;
+        } catch (error) {
+            console.error("Error en verificarPlacaActiva:", error);
             throw error;
         }
     }
