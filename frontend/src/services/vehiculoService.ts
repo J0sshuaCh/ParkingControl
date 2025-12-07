@@ -12,6 +12,7 @@ export interface EspacioLibre {
 
 export interface VehiculoActivo {
     id_vehiculo: number;
+    id_ticket: number;
     placa: string;
     tipo_vehiculo: string;
     hora_ingreso: string;

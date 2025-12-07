@@ -68,7 +68,7 @@ DECLARE v_password_hash VARCHAR(255);
     END IF;
 END$$
 
-DELIMITER;
+DELIMITER ;
 
 -- -----------------------------------------------------
 -- procedure sp_insertar_usuario
@@ -230,6 +230,79 @@ BEGIN
     ORDER BY t.id_ticket DESC;
 END$$
 
+-- Editar ticket (placa y tipo)
+CREATE PROCEDURE `sp_ticket_editar`(
+    IN p_id_ticket INT,
+    IN p_nueva_placa VARCHAR(20),
+    IN p_nuevo_tipo VARCHAR(20)
+)
+BEGIN
+    DECLARE v_id_vehiculo INT;
+    
+    SELECT id_vehiculo INTO v_id_vehiculo FROM ticket WHERE id_ticket = p_id_ticket;
+    
+    UPDATE vehiculos 
+    SET placa = p_nueva_placa, tipo_vehiculo = p_nuevo_tipo 
+    WHERE id_vehiculo = v_id_vehiculo;
+    
+    SELECT ROW_COUNT() as afectados;
+END$$
+
+-- Anular ticket
+CREATE PROCEDURE `sp_ticket_anular`(
+    IN p_id_ticket INT,
+    IN p_motivo TEXT,
+    IN p_id_usuario INT
+)
+BEGIN
+    DECLARE v_id_espacio INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        SELECT id_espacio INTO v_id_espacio FROM ticket WHERE id_ticket = p_id_ticket;
+
+        -- Marcar ticket como anulado
+        UPDATE ticket 
+        SET estado = 'Anulado', 
+            motivo_anulacion = p_motivo, 
+            hora_salida = NOW(),
+            id_usuario_salida = p_id_usuario
+        WHERE id_ticket = p_id_ticket;
+
+        -- Liberar espacio
+        UPDATE espacio SET estado = 'libre' WHERE id_espacio = v_id_espacio;
+        
+        -- Desvincular vehículo del espacio
+        UPDATE vehiculos SET id_espacio = NULL WHERE id_espacio = v_id_espacio;
+
+        SELECT 'Ticket anulado correctamente' as mensaje;
+    COMMIT;
+END$$
+
+-- Historial semanal
+CREATE PROCEDURE `sp_ticket_historial_semanal`(
+    IN p_fecha_inicio DATE,
+    IN p_fecha_fin DATE
+)
+BEGIN
+    SELECT 
+        t.id_ticket, t.codigo_ticket, 
+        DATE_FORMAT(t.hora_entrada, '%Y-%m-%d %H:%i') as hora_entrada,
+        DATE_FORMAT(t.hora_salida, '%Y-%m-%d %H:%i') as hora_salida,
+        t.tiempo_permanencia, t.monto_total, t.estado, t.motivo_anulacion,
+        v.placa, v.tipo_vehiculo,
+        e.codigo as codigo_espacio
+    FROM ticket t
+    JOIN vehiculos v ON t.id_vehiculo = v.id_vehiculo
+    JOIN espacio e ON t.id_espacio = e.id_espacio
+    WHERE DATE(t.hora_entrada) BETWEEN p_fecha_inicio AND p_fecha_fin
+    ORDER BY t.hora_entrada DESC;
+END$$
+
 -- Buscar ticket activo para cobrar
 CREATE PROCEDURE `sp_ticket_buscar_placa`(IN p_placa VARCHAR(20))
 BEGIN
@@ -327,7 +400,8 @@ BEGIN
         DATE_FORMAT(t.hora_entrada, "%H:%i") as hora_ingreso, 
         e.codigo as espacio, 
         'Activo' as status, 
-        t.codigo_ticket
+        t.codigo_ticket,
+        t.id_ticket
     FROM vehiculos v
     JOIN espacio e ON v.id_espacio = e.id_espacio
     JOIN ticket t ON v.id_vehiculo = t.id_vehiculo
@@ -335,15 +409,11 @@ BEGIN
     ORDER BY t.hora_entrada DESC;
 END$$
 
-USE `parkingcontrol_db`;
-
 -- =============================================================================
 -- 5. PROCEDIMIENTOS ADICIONALES PARA USUARIOS
 -- =============================================================================
 
-DELIMITER ;  -- 1. IMPORTANTE: Regresamos al delimitador normal (;)
-USE `parkingcontrol_db`;
-DELIMITER $$ -- 2. IMPORTANTE: Volvemos a cambiar a ($$) para los procedimientos
+
 
 -- 1. Obtener datos del usuario (usado en el Login tras verificar contraseña)
 DROP PROCEDURE IF EXISTS `sp_usuario_obtener_por_username`$$

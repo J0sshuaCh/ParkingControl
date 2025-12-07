@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Trash2, Eye, Search, Edit2, Printer, RefreshCcw } from "lucide-react"
 import { getEspaciosLibres, getVehiculosActivos, registrarEntrada, verificarPlaca, type EspacioLibre, type VehiculoActivo } from "@/services/vehiculoService"
+import { updateTicket, anularTicket, getTicketHistory, type TicketHistorial } from "@/services/ticketService"
+import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from "date-fns"
+import { es } from "date-fns/locale"
 
 interface DetailModalProps {
   vehicle: VehiculoActivo | null
@@ -15,57 +18,139 @@ interface DetailModalProps {
 
 function DetailModal({ vehicle, onClose, onEdit }: DetailModalProps) {
   const [isEditing, setIsEditing] = useState(false)
-  const [editData, setEditData] = useState<Partial<VehiculoActivo>>(vehicle || {})
+  const [editData, setEditData] = useState({ plate: "", type: "" })
+  const [showAnulConfirm, setShowAnulConfirm] = useState(false)
+  const [anulReason, setAnulReason] = useState("")
 
   useEffect(() => {
-    setEditData(vehicle || {})
+    if (vehicle) {
+      setEditData({ plate: vehicle.placa, type: vehicle.tipo_vehiculo })
+    }
   }, [vehicle])
 
   if (!vehicle) return null
+
+  // --- LÓGICA DE EDICIÓN Y ANULACIÓN ---
+  const handleSaveEdit = async () => {
+    try {
+      if (!vehicle.id_ticket) {
+        alert("Error: No se encontró ID de ticket para editar");
+        return;
+      }
+      await updateTicket(vehicle.id_ticket, {
+        nueva_placa: editData.plate,
+        nuevo_tipo: editData.type
+      });
+      alert("Ticket actualizado correctamente");
+      setIsEditing(false);
+      onEdit({ ...vehicle, placa: editData.plate, tipo_vehiculo: editData.type });
+      onClose();
+      window.location.reload();
+    } catch (e: any) {
+      alert("Error al actualizar: " + e.message);
+    }
+  }
+
+  const handleAnular = async () => {
+    if (!anulReason) return alert("Ingrese un motivo");
+    try {
+      if (!vehicle.id_ticket) {
+        alert("Error: No se encontró ID de ticket");
+        return;
+      }
+      await anularTicket(vehicle.id_ticket, anulReason);
+      alert("Ticket anulado correctamente");
+      onClose();
+      window.location.reload();
+    } catch (e: any) {
+      alert("Error al anular: " + e.message);
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md bg-card border border-border p-6 animate-slide-up">
         <h2 className="text-xl font-bold mb-4">Detalle del Vehículo</h2>
+
         {!isEditing ? (
           <div className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Placa</p>
-              <p className="text-lg font-semibold">{vehicle.placa}</p>
+            {/* VISTA SOLO LECTURA */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Placa</p>
+                <p className="text-lg font-semibold">{vehicle.placa}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Tipo</p>
+                <p className="text-lg font-semibold">{vehicle.tipo_vehiculo}</p>
+              </div>
             </div>
+            {/* Info Extra */}
             <div>
-              <p className="text-sm text-muted-foreground">Tipo</p>
-              <p className="text-lg font-semibold">{vehicle.tipo_vehiculo}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Hora de Ingreso</p>
-              <p className="text-lg font-semibold">{vehicle.hora_ingreso}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Espacio Asignado</p>
-              <p className="text-lg font-semibold">{vehicle.espacio}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Número de Ticket</p>
-              <p className="text-lg font-semibold text-primary">{vehicle.codigo_ticket}</p>
+              <p className="text-sm text-muted-foreground">Ticket</p>
+              <p className="text-lg text-primary font-bold">{vehicle.codigo_ticket}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Estado</p>
-              <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded text-sm font-medium">
-                {vehicle.status}
-              </span>
+              <p className="text-sm text-muted-foreground">Ingreso</p>
+              <p className="font-mono">{vehicle.hora_ingreso}</p>
             </div>
-            <div className="flex gap-2 mt-6">
-              {/* Nota: La edición completa requeriría otro endpoint en el backend */}
-              <Button onClick={onClose} variant="outline" className="flex-1 bg-transparent">
-                Cerrar
-              </Button>
-            </div>
+
+            {showAnulConfirm ? (
+              <div className="bg-destructive/10 p-4 rounded-md border border-destructive/20 animate-in fade-in zoom-in-95">
+                <p className="text-sm font-semibold text-destructive mb-2">¿Anular Ticket y Liberar Espacio?</p>
+                <Input
+                  placeholder="Motivo de anulación..."
+                  value={anulReason}
+                  onChange={e => setAnulReason(e.target.value)}
+                  className="bg-background mb-2"
+                />
+                <div className="flex gap-2">
+                  <Button variant="destructive" size="sm" onClick={handleAnular} className="flex-1">Confirmar Anulación</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setShowAnulConfirm(false)}>Cancelar</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2 mt-6">
+                <Button onClick={() => setIsEditing(true)} variant="secondary" className="flex-1">
+                  <Edit2 className="w-4 h-4 mr-2" /> Editar
+                </Button>
+                <Button onClick={() => setShowAnulConfirm(true)} variant="destructive" className="flex-1">
+                  <Trash2 className="w-4 h-4 mr-2" /> Anular
+                </Button>
+                <Button onClick={onClose} variant="outline">
+                  Cerrar
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
-          // Modo edición simplificado (solo visual por ahora si no tienes endpoint de update)
           <div className="space-y-4">
-            {/* ... formulario de edición si decides implementarlo ... */}
+            {/* VISTA EDICIÓN */}
+            <div>
+              <label className="text-sm font-medium">Placa</label>
+              <Input
+                value={editData.plate}
+                onChange={e => setEditData({ ...editData, plate: e.target.value.toUpperCase() })}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Tipo</label>
+              <select
+                value={editData.type}
+                onChange={(e) => setEditData({ ...editData, type: e.target.value })}
+                className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground"
+              >
+                <option value="Sedan">Sedan</option>
+                <option value="SUV">SUV</option>
+                <option value="Compacto">Compacto</option>
+                <option value="Camioneta">Camioneta</option>
+                <option value="Moto">Moto</option>
+              </select>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button onClick={handleSaveEdit} className="flex-1">Guardar Cambios</Button>
+              <Button onClick={() => setIsEditing(false)} variant="outline">Cancelar</Button>
+            </div>
           </div>
         )}
       </Card>
@@ -85,11 +170,16 @@ export function VehicleRegistration() {
     type: "Sedan",
     autoAssign: true
   })
-  const [selectedSpaceId, setSelectedSpaceId] = useState("") // Guardamos el ID, no el código
+  const [selectedSpaceId, setSelectedSpaceId] = useState("")
 
   // Estados de UI
   const [detailModal, setDetailModal] = useState<VehiculoActivo | null>(null)
   const [filterTicket, setFilterTicket] = useState("")
+
+  // Historial Semanal
+  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [weekHistory, setWeekHistory] = useState<TicketHistorial[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // --- Cargar Datos Iniciales ---
   const fetchData = useCallback(async () => {
@@ -112,15 +202,35 @@ export function VehicleRegistration() {
     fetchData()
   }, [fetchData])
 
+  // --- Cargar Historial ---
+  const fetchHistory = useCallback(async () => {
+    setLoadingHistory(true);
+    try {
+      const start = format(currentWeekStart, 'yyyy-MM-dd');
+      const end = format(endOfWeek(currentWeekStart, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const data = await getTicketHistory(start, end);
+      setWeekHistory(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [currentWeekStart]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  const nextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
+  const prevWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
+
   // --- Manejador de Registro ---
   const handleRegister = async () => {
-    // Validaciones simples
     if (!formData.plate) {
       alert("Por favor ingresa la placa del vehículo.")
       return
     }
 
-    // VALIDACIÓN 1: Verificar formato (Debe tener guion)
     if (!formData.plate.includes("-")) {
       alert("La placa debe incluir un guión (ej: ABC-123).")
       return;
@@ -132,9 +242,8 @@ export function VehicleRegistration() {
     }
 
     try {
-      setLoading(true); // Bloquear UI
+      setLoading(true);
 
-      // VALIDACIÓN 2: Verificar si ya existe en BD
       const existe = await verificarPlaca(formData.plate.toUpperCase());
       if (existe) {
         alert(`❌ Error: El vehículo con placa ${formData.plate} ya se encuentra DENTRO del estacionamiento.`);
@@ -151,11 +260,8 @@ export function VehicleRegistration() {
 
       alert(`✅ ¡Registro Exitoso!\nTicket: ${response.ticket}\nEspacio: ${response.espacio}`)
 
-      // Resetear formulario
       setFormData({ ...formData, plate: "" })
       setSelectedSpaceId("")
-
-      // Recargar datos para actualizar tabla y quitar el espacio usado de la lista
       fetchData()
 
     } catch (err: any) {
@@ -170,7 +276,6 @@ export function VehicleRegistration() {
     alert(`Imprimiendo ticket ${vehicle.codigo_ticket} para placa ${vehicle.placa}`)
   }
 
-  // Filtrado en frontend
   const filteredVehicles = vehicles.filter((v) => {
     if (filterTicket && !v.codigo_ticket.includes(filterTicket.toUpperCase()) && !v.placa.includes(filterTicket.toUpperCase())) return false
     return true
@@ -253,7 +358,6 @@ export function VehicleRegistration() {
               </select>
             </div>
           ) : (
-            // Botón Registrar (si es automático ocupa el 4to slot)
             <div className="flex items-end">
               <Button onClick={handleRegister} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                 <Plus className="w-4 h-4 mr-2" />
@@ -263,7 +367,6 @@ export function VehicleRegistration() {
           )}
         </div>
 
-        {/* Botón Registrar (si es manual ocupa una nueva fila para no deformar el grid) */}
         {!formData.autoAssign && (
           <div className="mt-4 flex justify-end">
             <Button onClick={handleRegister} className="w-full md:w-1/4 bg-primary text-primary-foreground hover:bg-primary/90">
@@ -294,9 +397,9 @@ export function VehicleRegistration() {
         </div>
       </Card>
 
-      {/* --- Tabla de Historial --- */}
+      {/* --- Tabla de Activos --- */}
       <Card className="p-6 bg-card border border-border">
-        <h2 className="text-lg font-semibold mb-4">Vehículos en Parqueo ({filteredVehicles.length})</h2>
+        <h2 className="text-lg font-semibold mb-4">Tickets de vehículos en el Parqueo ({filteredVehicles.length})</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -358,6 +461,72 @@ export function VehicleRegistration() {
             </tbody>
           </table>
         </div>
+      </Card>
+
+      {/* --- Historial Semanal --- */}
+      <Card className="p-6 bg-card border border-border mt-8">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold">Historial de Tickets Semanal</h2>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="sm" onClick={prevWeek}>&lt; Anterior</Button>
+            <div className="text-center">
+              <p className="text-sm font-medium">Semana del</p>
+              <p className="text-sm text-muted-foreground">
+                {format(currentWeekStart, "dd MMM", { locale: es })} al {format(endOfWeek(currentWeekStart, { weekStartsOn: 1 }), "dd MMM", { locale: es })}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={nextWeek}>Siguiente &gt;</Button>
+          </div>
+        </div>
+
+        {loadingHistory ? (
+          <p className="text-center py-8">Cargando historial...</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="text-left py-2 px-4 rounded-l-md">Ticket</th>
+                  <th className="text-left py-2 px-4">Placa</th>
+                  <th className="text-left py-2 px-4">Entrada</th>
+                  <th className="text-left py-2 px-4">Salida</th>
+                  <th className="text-left py-2 px-4">Estado</th>
+                  <th className="text-left py-2 px-4 rounded-r-md">Detalles / Motivo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {weekHistory.length === 0 ? (
+                  <tr><td colSpan={6} className="text-center py-4 text-muted-foreground">No hay tickets en esta semana.</td></tr>
+                ) : (
+                  weekHistory.map(t => (
+                    <tr key={t.id_ticket} className="border-b border-border hover:bg-muted/20">
+                      <td className="py-2 px-4 font-mono">{t.codigo_ticket}</td>
+                      <td className="py-2 px-4">{t.placa} <span className="text-xs text-muted-foreground">({t.tipo_vehiculo})</span></td>
+                      <td className="py-2 px-4">{t.hora_entrada}</td>
+                      <td className="py-2 px-4">{t.hora_salida || "-"}</td>
+                      <td className="py-2 px-4">
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold
+                                        ${t.estado === 'Emitido' ? 'bg-blue-100 text-blue-700' :
+                            t.estado === 'Pagado' ? 'bg-green-100 text-green-700' :
+                              'bg-red-100 text-red-700'}
+                                    `}>
+                          {t.estado}
+                        </span>
+                      </td>
+                      <td className="py-2 px-4 text-xs text-muted-foreground">
+                        {t.motivo_anulacion ? (
+                          <span className="text-destructive flex items-center gap-1">
+                            <Trash2 className="w-3 h-3" /> Anulado: {t.motivo_anulacion}
+                          </span>
+                        ) : t.monto_total ? `Total: S/ ${t.monto_total}` : "En curso"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
       <DetailModal vehicle={detailModal} onClose={() => setDetailModal(null)} onEdit={() => { }} />
