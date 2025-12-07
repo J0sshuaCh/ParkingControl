@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { generarReporte } from '@/services/reportesService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Loader2, DollarSign, Car, Clock, Calendar, BarChart3, Search, Download, FileText } from 'lucide-react';
-
+import * as XLSX from 'xlsx';
 // --- INTERFACES ---
 interface PaidTicket {
     id_ticket: number;
@@ -20,7 +20,6 @@ interface PaidTicket {
 }
 
 export function ReportsModule() {
-    // Estados para Filtros y Gráficos
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaFin, setFechaFin] = useState('');
     const [loading, setLoading] = useState(false);
@@ -67,8 +66,48 @@ export function ReportsModule() {
     };
 
     const handleExportExcel = () => {
-        // Aquí iría la lógica real de exportación a Excel (usando librerías como xlsx)
+        if (paidTickets.length === 0) return;
+
+        // A. Formatear los datos para que el Excel se vea profesional
+        // Mapeamos el array original a un nuevo objeto con nombres de columnas bonitos
+        const datosParaExcel = paidTickets.map(ticket => ({
+            "Código Ticket": ticket.codigo_ticket,
+            "Placa": ticket.placa,
+            "Tipo Vehículo": ticket.tipo_vehiculo,
+            "Espacio": ticket.codigo_espacio,
+            "Entrada": new Date(ticket.hora_entrada).toLocaleString(),
+            "Salida": new Date(ticket.hora_salida).toLocaleString(),
+            "Tiempo (min)": ticket.tiempo_permanencia,
+            "Monto (S/.)": Number(ticket.monto_total).toFixed(2)
+        }));
+
+        // B. Crear una hoja de trabajo (Worksheet)
+        const worksheet = XLSX.utils.json_to_sheet(datosParaExcel);
+
+        // C. Ajustar ancho de columnas automáticamente (Opcional, mejora visual)
+        const wscols = [
+            { wch: 15 }, // Ticket
+            { wch: 10 }, // Placa
+            { wch: 12 }, // Tipo
+            { wch: 8 },  // Espacio
+            { wch: 20 }, // Entrada
+            { wch: 20 }, // Salida
+            { wch: 12 }, // Tiempo
+            { wch: 12 }  // Monto
+        ];
+        worksheet['!cols'] = wscols;
         alert("Generando archivo Excel con el detalle de " + paidTickets.length + " tickets...");
+
+        // D. Crear el libro de trabajo (Workbook) y agregar la hoja
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte Tickets");
+
+        // E. Generar el nombre del archivo con la fecha actual
+        const fechaHoy = new Date().toISOString().split('T')[0];
+        const nombreArchivo = `Reporte_Parking_${fechaHoy}.xlsx`;
+
+        // F. Descargar el archivo
+        XLSX.writeFile(workbook, nombreArchivo);
     };
 
     return (
