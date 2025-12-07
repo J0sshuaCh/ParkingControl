@@ -337,9 +337,16 @@ END$$
 
 USE `parkingcontrol_db`;
 
+-- =============================================================================
 -- 5. PROCEDIMIENTOS ADICIONALES PARA USUARIOS
+-- =============================================================================
+
+DELIMITER ;  -- 1. IMPORTANTE: Regresamos al delimitador normal (;)
+USE `parkingcontrol_db`;
+DELIMITER $$ -- 2. IMPORTANTE: Volvemos a cambiar a ($$) para los procedimientos
 
 -- 1. Obtener datos del usuario (usado en el Login tras verificar contraseña)
+DROP PROCEDURE IF EXISTS `sp_usuario_obtener_por_username`$$
 CREATE PROCEDURE `sp_usuario_obtener_por_username`(
     IN p_username VARCHAR(50)
 )
@@ -358,6 +365,7 @@ BEGIN
 END$$
 
 -- 2. Listar todos los usuarios con su rol
+DROP PROCEDURE IF EXISTS `sp_usuario_listar`$$
 CREATE PROCEDURE `sp_usuario_listar`()
 BEGIN
     SELECT 
@@ -373,7 +381,7 @@ BEGIN
 END$$
 
 -- 3. Editar usuario
--- Nota: Usamos IFNULL para mantener el valor actual si envías NULL desde el backend
+DROP PROCEDURE IF EXISTS `sp_usuario_editar`$$
 CREATE PROCEDURE `sp_usuario_editar`(
     IN p_id_usuario INT,
     IN p_nombre_completo VARCHAR(100),
@@ -390,11 +398,12 @@ BEGIN
         id_rol = IFNULL(p_id_rol, id_rol)
     WHERE id_usuario = p_id_usuario;
 
-    -- Devolver cuántas filas se afectaron (0 si no hubo cambios o no existe)
+    -- Devolver cuántas filas se afectaron
     SELECT ROW_COUNT() as afectados;
 END$$
 
 -- 4. Eliminar usuario
+DROP PROCEDURE IF EXISTS `sp_usuario_eliminar`$$
 CREATE PROCEDURE `sp_usuario_eliminar`(
     IN p_id_usuario INT
 )
@@ -403,4 +412,5 @@ BEGIN
     SELECT ROW_COUNT() as afectados;
 END$$
 
-DELIMITER;
+DELIMITER ; 
+-- Fin del script
