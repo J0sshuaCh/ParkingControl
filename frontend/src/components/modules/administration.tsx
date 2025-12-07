@@ -5,26 +5,11 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Trash2, Edit2, BarChart3, Download, History, X, UserPlus } from "lucide-react"
+import { Plus, Trash2, Edit2, History, X, UserPlus } from "lucide-react"
 import { getTarifas, createTarifa, deleteTarifa, updateTarifa, type Tarifa } from "@/services/tarifasService"
 import { getUsuarios, createUsuario, deleteUsuario, updateUsuario, type Usuario } from "@/services/usuariosService"
 
 // --- TIPOS ---
-interface DailyReport {
-  date: string; revenue: number; vehicles: number; occupancy: number;
-}
-
-interface PaidTicket {
-  id_ticket: number;
-  codigo_ticket: string;
-  hora_entrada: string;
-  hora_salida: string;
-  tiempo_permanencia: number;
-  monto_total: number;
-  placa: string;
-  tipo_vehiculo: string;
-  codigo_espacio: string;
-}
 
 interface AuditRecord {
   id: string; timestamp: string; user: string; action: string; ticketId?: string; previousAmount?: number; newAmount?: number; reason?: string;
@@ -210,14 +195,6 @@ export function Administration() {
   // Estado formulario nueva tarifa
   const [newRate, setNewRate] = useState({ tipo_vehiculo: "Sedan", precio_hora: "" })
 
-  // Datos dummy para reportes (placeholders)
-  const [dailyReports] = useState<DailyReport[]>([
-    { date: "Lunes", revenue: 450000, vehicles: 120, occupancy: 65 },
-    { date: "Martes", revenue: 520000, vehicles: 145, occupancy: 75 },
-  ])
-
-  const [paidTickets, setPaidTickets] = useState<PaidTicket[]>([]) // Estado para tickets pagados
-
   const [auditHistory] = useState<AuditRecord[]>([
     { id: "1", timestamp: "2024-01-15 14:30", user: "María García", action: "Anular Ticket", ticketId: "TK-001" },
   ])
@@ -232,18 +209,6 @@ export function Administration() {
       console.error("Error cargando datos:", error)
     }
   }, [])
-
-  const loadPaidTickets = async () => {
-    try {
-      const res = await fetch('http://localhost:8800/api/tickets?estado=Pagado');
-      if (!res.ok) throw new Error('Error al cargar tickets pagados');
-      const data = await res.json();
-      setPaidTickets(data);
-    } catch (error) {
-      console.error(error);
-      alert("Error al cargar reporte de tickets pagados");
-    }
-  }
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -323,9 +288,6 @@ export function Administration() {
     }
   }
 
-  const handleExportExcel = () => {
-    alert("Descargando reporte en Excel...")
-  }
 
   return (
     <div className="space-y-6">
@@ -338,7 +300,6 @@ export function Administration() {
         <TabsList className="grid w-full grid-cols-4 bg-muted">
           <TabsTrigger value="users">Usuarios</TabsTrigger>
           <TabsTrigger value="rates">Tarifas</TabsTrigger>
-          <TabsTrigger value="reports">Reportes</TabsTrigger>
           <TabsTrigger value="audit">Auditoría</TabsTrigger>
         </TabsList>
 
@@ -499,50 +460,6 @@ export function Administration() {
         </TabsContent>
 
         {/* --- OTROS TABS --- */}
-        <TabsContent value="reports">
-          <Card className="p-6 bg-card border border-border">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><BarChart3 className="w-5 h-5" /> Reporte de Tickets Pagados</h2>
-            <div className="flex gap-3 mb-4">
-              <Button onClick={loadPaidTickets} className="bg-primary text-primary-foreground">Actualizar Reporte</Button>
-              <Button onClick={handleExportExcel} variant="outline" className="gap-2"><Download className="w-4 h-4" /> Exportar Excel</Button>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
-                  <tr>
-                    <th className="p-3">Ticket</th>
-                    <th className="p-3">Placa</th>
-                    <th className="p-3">Vehículo</th>
-                    <th className="p-3">Entrada</th>
-                    <th className="p-3">Salida</th>
-                    <th className="p-3">Tiempo (min)</th>
-                    <th className="p-3">Monto</th>
-                    <th className="p-3">Espacio</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {paidTickets.map((t) => (
-                    <tr key={t.id_ticket} className="hover:bg-muted/50 transition-colors">
-                      <td className="p-3 font-medium">{t.codigo_ticket}</td>
-                      <td className="p-3">{t.placa}</td>
-                      <td className="p-3">{t.tipo_vehiculo}</td>
-                      <td className="p-3">{new Date(t.hora_entrada).toLocaleString()}</td>
-                      <td className="p-3">{new Date(t.hora_salida).toLocaleString()}</td>
-                      <td className="p-3">{t.tiempo_permanencia}</td>
-                      <td className="p-3 font-bold text-green-600">S/. {Number(t.monto_total).toFixed(2)}</td>
-                      <td className="p-3">{t.codigo_espacio}</td>
-                    </tr>
-                  ))}
-                  {paidTickets.length === 0 && (
-                    <tr><td colSpan={8} className="text-center p-8 text-muted-foreground">No hay tickets pagados registrados o no se ha cargado el reporte.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="audit">
           <Card className="p-6 bg-card border border-border">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><History className="w-5 h-5" /> Historial</h2>

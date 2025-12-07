@@ -9,8 +9,8 @@ import { VehicleRegistration } from "./modules/vehicle-registration"
 import { ExitAndBilling } from "./modules/exit-and-billing"
 import { SpaceManagement } from "./modules/space-management"
 import { Administration } from "./modules/administration"
-// import { SystemConfiguration } from "./modules/system-configuration"
-// import { ShiftManagement } from "./modules/shift-management"
+import { ReportsModule } from "./modules/reports"
+
 
 interface DashboardProps {
   userName: string
@@ -38,6 +38,8 @@ export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
         return <ExitAndBilling />
       case "spaces":
         return <SpaceManagement />
+      case "reports":
+        return <ReportsModule />
       //   case "shifts":
       //     return <ShiftManagement />
       //   case "config":

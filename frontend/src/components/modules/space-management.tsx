@@ -8,7 +8,7 @@ import { Car, Lock, CheckCircle, ParkingCircle, X, AlertTriangle, Map } from "lu
 
 // --- Importar el servicio de espacios ---
 // RUTA CORREGIDA: Incluimos .js para asegurar que el compilador resuelva el módulo transpuesto.
-import { getMapaOcupacion, reservarEspacio, liberarEspacio } from "@/services/espaciosService.js"
+import { getMapaOcupacion, reservarEspacio, liberarEspacio } from "@/services/espaciosService"
 
 // --- CONFIGURACIÓN BASE ---
 const USER_ID = 1; // HARDCODED: Esto debe ser dinámico desde el contexto de autenticación
