@@ -151,6 +151,7 @@ CREATE TABLE IF NOT EXISTS `parkingcontrol_db`.`ticket` (
     `hora_salida` DATETIME NULL DEFAULT NULL,
     `tiempo_permanencia` INT NULL DEFAULT NULL,
     `monto_total` DECIMAL(10, 2) NULL DEFAULT NULL,
+    `motivo_anulacion` TEXT NULL DEFAULT NULL,
     `estado` ENUM(
         'Emitido',
         'Pagado',

@@ -7,6 +7,7 @@ import { Header } from "./header"
 import { DashboardOverview } from "./dashboard-overview"
 import { VehicleRegistration } from "./modules/vehicle-registration"
 import { ExitAndBilling } from "./modules/exit-and-billing"
+import { TicketHistory } from "./modules/ticket-history"
 import { SpaceManagement } from "./modules/space-management"
 import { Administration } from "./modules/administration"
 import { ReportsModule } from "./modules/reports"
@@ -36,6 +37,8 @@ export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
         return <VehicleRegistration />
       case "billing":
         return <ExitAndBilling />
+      case "history":
+        return <TicketHistory />
       case "spaces":
         return <SpaceManagement />
       case "reports":

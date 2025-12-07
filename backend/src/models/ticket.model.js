@@ -17,7 +17,7 @@ export const TicketModel = {
         try {
             const [rows] = await db.query("CALL sp_ticket_buscar_placa(?)", [placa]);
             // Retorna el primer resultado o undefined
-            return rows[0][0]; 
+            return rows[0][0];
         } catch (error) {
             console.error("Error en buscarPorPlaca:", error);
             throw error;
@@ -48,6 +48,41 @@ export const TicketModel = {
             return true;
         } catch (error) {
             console.error("Error en TicketModel.pagarTicket:", error);
+            throw error;
+        }
+    },
+
+    // Editar Ticket
+    editarTicket: async (id_ticket, nueva_placa, nuevo_tipo) => {
+        try {
+            const sql = "CALL sp_ticket_editar(?, ?, ?)";
+            await db.query(sql, [id_ticket, nueva_placa, nuevo_tipo]);
+            return true;
+        } catch (error) {
+            console.error("Error en TicketModel.editarTicket:", error);
+            throw error;
+        }
+    },
+
+    // Anular Ticket
+    anularTicket: async (id_ticket, motivo, id_usuario) => {
+        try {
+            const sql = "CALL sp_ticket_anular(?, ?, ?)";
+            await db.query(sql, [id_ticket, motivo, id_usuario]);
+            return true;
+        } catch (error) {
+            console.error("Error en TicketModel.anularTicket:", error);
+            throw error;
+        }
+    },
+
+    // Historial Semanal
+    obtenerHistorialSemanal: async (start, end) => {
+        try {
+            const [rows] = await db.query("CALL sp_ticket_historial_semanal(?, ?)", [start, end]);
+            return rows[0];
+        } catch (error) {
+            console.error("Error en TicketModel.obtenerHistorialSemanal:", error);
             throw error;
         }
     }
