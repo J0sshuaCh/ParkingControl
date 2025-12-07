@@ -347,6 +347,8 @@ BEGIN
 END$$
 
 -- Pagar y cerrar ticket (Liberando espacio)
+DROP PROCEDURE IF EXISTS `sp_ticket_pagar` $$
+
 CREATE PROCEDURE `sp_ticket_pagar`(
     IN p_id_ticket INT,
     IN p_id_espacio INT,
@@ -360,19 +362,24 @@ BEGIN
     END;
 
     START TRANSACTION;
-        -- Cerrar Ticket
+        -- 1. Cerrar Ticket y CALCULAR TIEMPO
         UPDATE ticket 
-        SET estado = 'Pagado', hora_salida = NOW(), monto_total = p_monto_total
+        SET 
+            estado = 'Pagado', 
+            hora_salida = NOW(), 
+            -- Aquí calculamos los minutos transcurridos
+            tiempo_permanencia = TIMESTAMPDIFF(MINUTE, hora_entrada, NOW()), 
+            monto_total = p_monto_total
         WHERE id_ticket = p_id_ticket;
 
-        -- Liberar Espacio
+        -- 2. Liberar Espacio
         UPDATE espacio SET estado = 'libre' WHERE id_espacio = p_id_espacio;
 
-        -- Desvincular vehículo (para que no salga "en parqueo" si se busca por ID espacio)
+        -- 3. Desvincular vehículo
         UPDATE vehiculos SET id_espacio = NULL WHERE id_espacio = p_id_espacio;
         
     COMMIT;
-    SELECT 'Ticket pagado y espacio liberado' AS mensaje;
+    SELECT 'Ticket pagado, tiempo calculado y espacio liberado' AS mensaje;
 END$$
 
 -- 4. GESTIÓN DE VEHÍCULOS (Entrada y Listado)
