@@ -29,13 +29,22 @@ interface Space {
   reservedUntil?: string // Duración de la reserva
 }
 
+// --- Importamos createPortal para renders fuera del flujo normal ---
+import { createPortal } from "react-dom";
+
 // --- COMPONENTE MODAL DE RESERVA (para HU8) ---
 
 function ReserveModal({ space, onClose, onConfirm }: any) {
   const [reason, setReason] = useState("")
   const [duration, setDuration] = useState("")
+  const [mounted, setMounted] = useState(false)
 
-  if (!space) return null
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
+  if (!space || !mounted) return null
 
   const handleConfirm = () => {
     if (reason && duration) {
@@ -47,8 +56,8 @@ function ReserveModal({ space, onClose, onConfirm }: any) {
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
       <Card className="w-full max-w-md bg-card border border-border p-6 animate-slide-up">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Reservar Espacio: {space.id}</h2>
@@ -95,15 +104,23 @@ function ReserveModal({ space, onClose, onConfirm }: any) {
           </div>
         </div>
       </Card>
-    </div>
+    </div>,
+    document.body
   )
 }
 
 
 // --- COMPONENTE MODAL DE DETALLE DE RESERVA ---
 function ReservationDetailsModal({ space, onClose, onCancel }: any) {
+  const [mounted, setMounted] = useState(false)
   const [timeLeft, setTimeLeft] = useState("Calculando...");
 
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
+  // Efecto del timer rediseñado (El usuario lo había revertido, lo restauramos)
   useEffect(() => {
     if (!space?.reservedUntil) {
       setTimeLeft("N/A");
@@ -138,10 +155,10 @@ function ReservationDetailsModal({ space, onClose, onCancel }: any) {
     return () => clearInterval(interval);
   }, [space]);
 
-  if (!space) return null
+  if (!space || !mounted) return null
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
       <Card className="w-full max-w-md bg-card border border-border p-6 animate-slide-up">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Detalle de Reserva: {space.id}</h2>
@@ -179,16 +196,24 @@ function ReservationDetailsModal({ space, onClose, onCancel }: any) {
           </div>
         </div>
       </Card>
-    </div>
+    </div>,
+    document.body
   )
 }
 
 // --- COMPONENTE ALERTA DE CAPACIDAD (para HU9) ---
 function CapacityAlert({ show, onClose }: { show: boolean, onClose: () => void }) {
-  if (!show) return null
+  const [mounted, setMounted] = useState(false)
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
+  if (!show || !mounted) return null
+
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
       <Card className="w-full max-w-md bg-destructive border-destructive p-6 animate-slide-up">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-destructive-foreground flex items-center">
@@ -215,7 +240,8 @@ function CapacityAlert({ show, onClose }: { show: boolean, onClose: () => void }
           Entendido
         </Button>
       </Card>
-    </div>
+    </div>,
+    document.body
   )
 }
 
