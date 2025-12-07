@@ -1,10 +1,12 @@
 "use client"
 
+import { createPortal } from "react-dom"
+
 import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Eye, Search, Edit2, Printer, RefreshCcw } from "lucide-react"
+import { Plus, Trash2, Eye, Search, Edit2, Printer, RefreshCcw, X } from "lucide-react"
 import { getEspaciosLibres, getVehiculosActivos, registrarEntrada, verificarPlaca, type EspacioLibre, type VehiculoActivo } from "@/services/vehiculoService"
 import { updateTicket, anularTicket, getTicketHistory, type TicketHistorial } from "@/services/ticketService"
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from "date-fns"
@@ -22,13 +24,21 @@ function DetailModal({ vehicle, onClose, onEdit }: DetailModalProps) {
   const [showAnulConfirm, setShowAnulConfirm] = useState(false)
   const [anulReason, setAnulReason] = useState("")
 
+  // Estado para controlar montaje en cliente (necesario para portal)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
   useEffect(() => {
     if (vehicle) {
       setEditData({ plate: vehicle.placa, type: vehicle.tipo_vehiculo })
     }
   }, [vehicle])
 
-  if (!vehicle) return null
+  if (!vehicle || !mounted) return null
 
   // --- LÓGICA DE EDICIÓN Y ANULACIÓN ---
   const handleSaveEdit = async () => {
@@ -67,10 +77,15 @@ function DetailModal({ vehicle, onClose, onEdit }: DetailModalProps) {
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
       <Card className="w-full max-w-md bg-card border border-border p-6 animate-slide-up">
-        <h2 className="text-xl font-bold mb-4">Detalle del Vehículo</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Detalle del Vehículo</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
 
         {!isEditing ? (
           <div className="space-y-4">
@@ -154,7 +169,8 @@ function DetailModal({ vehicle, onClose, onEdit }: DetailModalProps) {
           </div>
         )}
       </Card>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -443,8 +459,9 @@ export function VehicleRegistration() {
                         size="sm"
                         onClick={() => setDetailModal(vehicle)}
                         className="text-primary hover:bg-primary/10"
+                        title="Ver Detalles / Editar / Anular"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"

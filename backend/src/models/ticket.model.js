@@ -52,6 +52,30 @@ export const TicketModel = {
         }
     },
 
+    // Editar Ticket
+    editarTicket: async (id_ticket, nueva_placa, nuevo_tipo) => {
+        try {
+            const sql = "CALL sp_ticket_editar(?, ?, ?)";
+            await db.query(sql, [id_ticket, nueva_placa, nuevo_tipo]);
+            return true;
+        } catch (error) {
+            console.error("Error en TicketModel.editarTicket:", error);
+            throw error;
+        }
+    },
+
+    // Anular Ticket
+    anularTicket: async (id_ticket, motivo, id_usuario) => {
+        try {
+            const sql = "CALL sp_ticket_anular(?, ?, ?)";
+            await db.query(sql, [id_ticket, motivo, id_usuario]);
+            return true;
+        } catch (error) {
+            console.error("Error en TicketModel.anularTicket:", error);
+            throw error;
+        }
+    },
+
     // Historial Semanal
     obtenerHistorialSemanal: async (start, end) => {
         try {

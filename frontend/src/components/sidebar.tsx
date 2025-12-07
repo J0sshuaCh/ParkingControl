@@ -20,8 +20,6 @@ export function Sidebar({ activeModule, onModuleChange, userRole }: SidebarProps
     { id: "vehicles", label: "Registro de Vehículos", icon: Car },
     { id: "billing", label: "Salida y Cobro", icon: CreditCard },
     { id: "spaces", label: "Gestión de Espacios", icon: Grid3x3 },
-    { id: "shifts", label: "Gestión de Turnos", icon: Clock },
-    { id: "config", label: "Configuración", icon: Sliders },
     { id: "admin", label: "Administración", icon: Settings },
   ]
 
