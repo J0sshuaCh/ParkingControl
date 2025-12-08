@@ -297,10 +297,9 @@ export function Administration() {
       </div>
 
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-muted">
+        <TabsList className="grid w-full grid-cols-2 bg-muted">
           <TabsTrigger value="users">Usuarios</TabsTrigger>
           <TabsTrigger value="rates">Tarifas</TabsTrigger>
-          <TabsTrigger value="audit">Auditoría</TabsTrigger>
         </TabsList>
 
         {/* --- TAB USUARIOS --- */}
@@ -458,8 +457,7 @@ export function Administration() {
             </div>
           </Card>
         </TabsContent>
-
-        {/* --- OTROS TABS --- */}
+        {/* --- Tab AUDIT (Mejora a futuro) --- 
         <TabsContent value="audit">
           <Card className="p-6 bg-card border border-border">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><History className="w-5 h-5" /> Historial</h2>
@@ -477,9 +475,9 @@ export function Administration() {
             </div>
           </Card>
         </TabsContent>
-
+      
+      */}
       </Tabs>
-
       {/* Modal de Edición */}
       <EditUserModal user={editingUser} onClose={() => setEditingUser(null)} onSave={handleUpdateUser} />
       <EditTarifaModal tarifa={editingTarifa} onClose={() => setEditingTarifa(null)} onSave={handleUpdateRate} />
