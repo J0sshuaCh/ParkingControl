@@ -11,6 +11,7 @@ import { TicketHistory } from "./modules/ticket-history"
 import { SpaceManagement } from "./modules/space-management"
 import { Administration } from "./modules/administration"
 import { ReportsModule } from "./modules/reports"
+import { Layout } from "../app/layout"
 
 
 interface DashboardProps {
@@ -55,14 +56,19 @@ export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <SidebarTyped activeModule={activeModule} onModuleChange={setActiveModule} userRole={userRole} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header userName={userName} onLogout={onLogout} onNavigate={function (module: string): void {
-          throw new Error("Function not implemented.")
-        }} />
-        <main className="flex-1 overflow-auto bg-muted/30 p-6 animate-fade-in">{renderModule()}</main>
-      </div>
-    </div>
+    // 3. USAMOS EL LAYOUT: Aquí ocurre la magia
+    // Al pasar 'onModuleChange={setActiveModule}', el Layout se encarga de:
+    // a) Decirle al Sidebar qué botón resaltar.
+    // b) Decirle al Header qué hacer cuando clickean la alerta "Estacionamiento Lleno".
+    <Layout
+      activeModule={activeModule}
+      onModuleChange={setActiveModule}
+      userRole={userRole}
+      userName={userName}
+      onLogout={onLogout}
+    >
+      {/* El contenido que cambia se inyecta aquí */}
+      {renderModule()}
+    </Layout>
   )
 }
