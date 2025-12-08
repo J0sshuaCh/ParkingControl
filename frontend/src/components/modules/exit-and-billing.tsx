@@ -8,6 +8,7 @@ import { AlertCircle, CheckCircle, Printer, Search, RefreshCcw, MousePointerClic
 import { buscarTicketPorPlaca, procesarPago } from "@/services/ticketService";
 import type { Ticket } from "@/services/ticketService";
 import { getVehiculosActivos, type VehiculoActivo } from "@/services/vehiculoService";
+import { generateExitTicket } from "@/lib/ticketUtils";
 import { DetailModal } from "./vehicle-registration";
 
 export function ExitAndBilling() {
@@ -74,7 +75,9 @@ export function ExitAndBilling() {
   };
 
   const handlePrint = () => {
-    alert("Imprimiendo comprobante...");
+    if (currentTicket) {
+      generateExitTicket(currentTicket);
+    }
   };
 
   const handleCancel = () => {
