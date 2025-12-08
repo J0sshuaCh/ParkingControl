@@ -28,7 +28,7 @@ export function Sidebar({ activeModule, onModuleChange, userRole }: SidebarProps
   // Filter modules based on user role
   const modules = allModules.filter(m => {
     if (m.id === 'admin') return userRole.toLowerCase() === 'administrador';
-    if (m.id === 'reports') return userRole.toLowerCase() === 'administrador';
+    if (m.id === 'reports') return userRole.toLowerCase() === 'administrador' || userRole.toLowerCase() === 'supervisor';
     return true;
   });
 

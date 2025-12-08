@@ -43,7 +43,7 @@ export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
         return <SpaceManagement />
       case "reports":
         // Protección extra: Si no es admin, no renderiza
-        if (userRole.toLowerCase() !== "administrador") return <DashboardOverview />
+        if (userRole.toLowerCase() !== "administrador" && userRole.toLowerCase() !== "supervisor") return <DashboardOverview />
         else return <ReportsModule />
       case "admin":
         // Protección extra: Si no es admin, no renderiza
@@ -58,7 +58,9 @@ export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
     <div className="flex h-screen bg-background">
       <SidebarTyped activeModule={activeModule} onModuleChange={setActiveModule} userRole={userRole} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header userName={userName} onLogout={onLogout} />
+        <Header userName={userName} onLogout={onLogout} onNavigate={function (module: string): void {
+          throw new Error("Function not implemented.")
+        }} />
         <main className="flex-1 overflow-auto bg-muted/30 p-6 animate-fade-in">{renderModule()}</main>
       </div>
     </div>
