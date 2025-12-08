@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Plus, Trash2, Eye, Search, Edit2, Printer, RefreshCcw, X } from "lucide-react"
 import { getEspaciosLibres, getVehiculosActivos, registrarEntrada, verificarPlaca, type EspacioLibre, type VehiculoActivo } from "@/services/vehiculoService"
 import { updateTicket, anularTicket } from "@/services/ticketService"
+import { generateEntryTicket } from "@/lib/ticketUtils"
 
 export interface DetailModalProps {
   vehicle: VehiculoActivo | null
@@ -264,7 +265,7 @@ export function VehicleRegistration() {
   }
 
   const handleReprint = (vehicle: VehiculoActivo) => {
-    alert(`Imprimiendo ticket ${vehicle.codigo_ticket} para placa ${vehicle.placa}`)
+    generateEntryTicket(vehicle);
   }
 
   const filteredVehicles = vehicles.filter((v) => {
