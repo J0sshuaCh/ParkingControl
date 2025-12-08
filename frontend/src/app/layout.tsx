@@ -21,7 +21,7 @@ export function Layout({
   onLogout
 }: LayoutProps) {
   return (
-    <div className="flex h-screen w-full bg-gray-50 overflow-hidden">
+    <div className="flex h-screen w-full bg-background overflow-hidden">
 
       {/* 2. SIDEBAR DINÁMICO */}
       <Sidebar
