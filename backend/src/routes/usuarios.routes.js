@@ -1,12 +1,16 @@
 import express from "express";
-import { loginUsuario } from "../controllers/usuarios.controller.js";
+import { UsuarioController } from "../controllers/usuarios.controller.js";
 
 const router = express.Router();
 
-router.post("/login", loginUsuario);
+router.post("/login", UsuarioController.loginUsuario);
 
-router.get("/test", (req, res) => {
-  res.send("Ruta usuarios funcionando");
-});
+router.post("/register", UsuarioController.registerUsuario);
+
+router.get("/listar", UsuarioController.listarUsuario);
+
+router.put("/editar/:id_usuario", UsuarioController.editarUsuario);
+
+router.delete("/eliminar/:id_usuario", UsuarioController.eliminarUsuario);
 
 export default router;

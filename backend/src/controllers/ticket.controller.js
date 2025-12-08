@@ -45,9 +45,52 @@ export const procesarPago = async (req, res) => {
 export const obtenerTickets = async (req, res) => {
     try {
         const tickets = await TicketModel.obtenerTodos();
+
+        // Filtrar por estado si se proporciona en el query param
+        const { estado } = req.query;
+        if (estado) {
+            const ticketsFiltrados = tickets.filter(t => t.estado === estado);
+            return res.json(ticketsFiltrados);
+        }
+
         res.json(tickets);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Error al obtener tickets', error: err.message });
+    }
+};
+
+export const editarTicket = async (req, res) => {
+    const { id } = req.params;
+    const { nueva_placa, nuevo_tipo } = req.body;
+    try {
+        await TicketModel.editarTicket(id, nueva_placa.toUpperCase(), nuevo_tipo);
+        res.json({ message: "Ticket actualizado correctamente" });
+    } catch (error) {
+        res.status(500).json({ message: "Error al editar ticket", error: error.message });
+    }
+};
+
+export const anularTicket = async (req, res) => {
+    const { id } = req.params;
+    const { motivo, id_usuario } = req.body;
+    try {
+        await TicketModel.anularTicket(id, motivo, id_usuario || 1); // Default user 1 if not provided
+        res.json({ message: "Ticket anulado correctamente" });
+    } catch (error) {
+        res.status(500).json({ message: "Error al anular ticket", error: error.message });
+    }
+};
+
+export const getHistorialSemanal = async (req, res) => {
+    const { start, end } = req.query; // Expects YYYY-MM-DD
+    try {
+        if (!start || !end) {
+            return res.status(400).json({ message: "Fechas start y end son requeridas" });
+        }
+        const historial = await TicketModel.obtenerHistorialSemanal(start, end);
+        res.json(historial);
+    } catch (error) {
+        res.status(500).json({ message: "Error al obtener historial", error: error.message });
     }
 };

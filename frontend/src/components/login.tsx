@@ -4,13 +4,12 @@ import { useState, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-// CORRECCIÓN 1: Agregamos "LogIn" aquí para que el botón funcione
 import { ParkingCircle, Loader2, Eye, EyeOff, AlertCircle, LogIn } from "lucide-react"
 
-import { loginRequest } from "@/services/authService"
+import { loginRequest } from "@/services/usuariosService"
 
 interface LoginProps {
-  onLogin: (name: string) => void
+  onLogin: (user: any) => void
 }
 
 function PasswordInput({ value, onChange, disabled }: { value: string, onChange: (val: string) => void, disabled: boolean }) {
@@ -38,7 +37,6 @@ function PasswordInput({ value, onChange, disabled }: { value: string, onChange:
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         placeholder="••••••••"
-        // CAMBIO AQUÍ: Agregué "dark:bg-background" para oscurecerlo más en modo noche
         className="pr-10 bg-input dark:bg-background border-border text-foreground placeholder:text-muted-foreground transition-all focus:ring-2 focus:ring-primary/20 h-11"
       />
       <button
@@ -75,9 +73,11 @@ export function Login({ onLogin }: LoginProps) {
 
       // Manejo robusto de la respuesta del usuario
       if (data && data.user) {
-        onLogin(data.user.nombre_completo);
+        // Pasamos el objeto usuario completo
+        onLogin(data.user);
       } else {
-        onLogin(username);
+        // Fallback por si acaso
+        onLogin({ nombre_completo: username, nombre_rol: 'Operador' });
       }
 
     } catch (err: any) {
@@ -149,7 +149,6 @@ export function Login({ onLogin }: LoginProps) {
                   Iniciando...
                 </>
               ) : (
-                // CORRECCIÓN 2: Aquí está tu botón original restaurado y funcionando
                 <>
                   Ingresar <LogIn className="w-4 h-4 ml-2" />
                 </>

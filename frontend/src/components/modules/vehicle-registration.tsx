@@ -1,75 +1,178 @@
 "use client"
 
+import { createPortal } from "react-dom"
+
 import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Eye, Search, Edit2, Printer, RefreshCcw } from "lucide-react"
-import { getEspaciosLibres, getVehiculosActivos, registrarEntrada, type EspacioLibre, type VehiculoActivo } from "@/services/vehiculoService"
+import { Plus, Trash2, Eye, Search, Edit2, Printer, RefreshCcw, X } from "lucide-react"
+import { getEspaciosLibres, getVehiculosActivos, registrarEntrada, verificarPlaca, type EspacioLibre, type VehiculoActivo } from "@/services/vehiculoService"
+import { updateTicket, anularTicket } from "@/services/ticketService"
 
-interface DetailModalProps {
+export interface DetailModalProps {
   vehicle: VehiculoActivo | null
   onClose: () => void
   onEdit: (vehicle: VehiculoActivo) => void
+  onAnulate?: (id_vehiculo: number) => void
 }
 
-function DetailModal({ vehicle, onClose, onEdit }: DetailModalProps) {
+export function DetailModal({ vehicle, onClose, onEdit, onAnulate }: DetailModalProps) {
   const [isEditing, setIsEditing] = useState(false)
-  const [editData, setEditData] = useState<Partial<VehiculoActivo>>(vehicle || {})
+  const [editData, setEditData] = useState({ plate: "", type: "" })
+  const [showAnulConfirm, setShowAnulConfirm] = useState(false)
+  const [anulReason, setAnulReason] = useState("")
+
+  // Estado para controlar montaje en cliente (necesario para portal)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setEditData(vehicle || {})
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
+  useEffect(() => {
+    if (vehicle) {
+      setEditData({ plate: vehicle.placa, type: vehicle.tipo_vehiculo })
+      // Resetear estados internos al abrir nuevo vehículo
+      setShowAnulConfirm(false)
+      setIsEditing(false)
+      setAnulReason("")
+    }
   }, [vehicle])
 
-  if (!vehicle) return null
+  if (!vehicle || !mounted) return null
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  // --- LÓGICA DE EDICIÓN Y ANULACIÓN ---
+  const handleSaveEdit = async () => {
+    try {
+      if (!vehicle.id_ticket) {
+        alert("Error: No se encontró ID de ticket para editar");
+        return;
+      }
+      await updateTicket(vehicle.id_ticket, {
+        nueva_placa: editData.plate,
+        nuevo_tipo: editData.type
+      });
+      alert("Ticket actualizado correctamente");
+      setIsEditing(false);
+      onEdit({ ...vehicle, placa: editData.plate, tipo_vehiculo: editData.type });
+      onClose();
+    } catch (e: any) {
+      alert("Error al actualizar: " + e.message);
+    }
+  }
+
+  const handleAnular = async () => {
+    if (!anulReason) return alert("Ingrese un motivo");
+    try {
+      if (!vehicle.id_ticket) {
+        alert("Error: No se encontró ID de ticket");
+        return;
+      }
+      await anularTicket(vehicle.id_ticket, anulReason);
+      alert("Ticket anulado correctamente");
+      if (onAnulate) onAnulate(vehicle.id_vehiculo);
+      onClose();
+    } catch (e: any) {
+      alert("Error al anular: " + e.message);
+    }
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
       <Card className="w-full max-w-md bg-card border border-border p-6 animate-slide-up">
-        <h2 className="text-xl font-bold mb-4">Detalle del Vehículo</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Detalle del Vehículo</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+
         {!isEditing ? (
           <div className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Placa</p>
-              <p className="text-lg font-semibold">{vehicle.placa}</p>
+            {/* VISTA SOLO LECTURA */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Placa</p>
+                <p className="text-lg font-semibold">{vehicle.placa}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Tipo</p>
+                <p className="text-lg font-semibold">{vehicle.tipo_vehiculo}</p>
+              </div>
             </div>
+            {/* Info Extra */}
             <div>
-              <p className="text-sm text-muted-foreground">Tipo</p>
-              <p className="text-lg font-semibold">{vehicle.tipo_vehiculo}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Hora de Ingreso</p>
-              <p className="text-lg font-semibold">{vehicle.hora_ingreso}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Espacio Asignado</p>
-              <p className="text-lg font-semibold">{vehicle.espacio}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Número de Ticket</p>
-              <p className="text-lg font-semibold text-primary">{vehicle.codigo_ticket}</p>
+              <p className="text-sm text-muted-foreground">Ticket</p>
+              <p className="text-lg text-primary font-bold">{vehicle.codigo_ticket}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Estado</p>
-              <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded text-sm font-medium">
-                {vehicle.status}
-              </span>
+              <p className="text-sm text-muted-foreground">Ingreso</p>
+              <p className="font-mono">{vehicle.hora_ingreso}</p>
             </div>
-            <div className="flex gap-2 mt-6">
-              {/* Nota: La edición completa requeriría otro endpoint en el backend */}
-              <Button onClick={onClose} variant="outline" className="flex-1 bg-transparent">
-                Cerrar
-              </Button>
-            </div>
+
+            {showAnulConfirm ? (
+              <div className="bg-destructive/10 p-4 rounded-md border border-destructive/20 animate-in fade-in zoom-in-95">
+                <p className="text-sm font-semibold text-destructive mb-2">¿Anular Ticket y Liberar Espacio?</p>
+                <Input
+                  placeholder="Motivo de anulación..."
+                  value={anulReason}
+                  onChange={e => setAnulReason(e.target.value)}
+                  className="bg-background mb-2"
+                />
+                <div className="flex gap-2">
+                  <Button variant="destructive" size="sm" onClick={handleAnular} className="flex-1">Confirmar Anulación</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setShowAnulConfirm(false)}>Cancelar</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2 mt-6">
+                <Button onClick={() => setIsEditing(true)} variant="secondary" className="flex-1">
+                  <Edit2 className="w-4 h-4 mr-2" /> Editar
+                </Button>
+                <Button onClick={() => setShowAnulConfirm(true)} variant="destructive" className="flex-1">
+                  <Trash2 className="w-4 h-4 mr-2" /> Anular
+                </Button>
+                <Button onClick={onClose} variant="outline">
+                  Cerrar
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
-          // Modo edición simplificado (solo visual por ahora si no tienes endpoint de update)
           <div className="space-y-4">
-            {/* ... formulario de edición si decides implementarlo ... */}
+            {/* VISTA EDICIÓN */}
+            <div>
+              <label className="text-sm font-medium">Placa</label>
+              <Input
+                value={editData.plate}
+                onChange={e => setEditData({ ...editData, plate: e.target.value.toUpperCase() })}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Tipo</label>
+              <select
+                value={editData.type}
+                onChange={(e) => setEditData({ ...editData, type: e.target.value })}
+                className="w-full px-3 py-2 bg-input border border-border rounded-md text-foreground"
+              >
+                <option value="Sedan">Sedan</option>
+                <option value="SUV">SUV</option>
+                <option value="Compacto">Compacto</option>
+                <option value="Camioneta">Camioneta</option>
+                <option value="Moto">Moto</option>
+              </select>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button onClick={handleSaveEdit} className="flex-1">Guardar Cambios</Button>
+              <Button onClick={() => setIsEditing(false)} variant="outline">Cancelar</Button>
+            </div>
           </div>
         )}
       </Card>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -85,7 +188,7 @@ export function VehicleRegistration() {
     type: "Sedan",
     autoAssign: true
   })
-  const [selectedSpaceId, setSelectedSpaceId] = useState("") // Guardamos el ID, no el código
+  const [selectedSpaceId, setSelectedSpaceId] = useState("")
 
   // Estados de UI
   const [detailModal, setDetailModal] = useState<VehiculoActivo | null>(null)
@@ -114,17 +217,31 @@ export function VehicleRegistration() {
 
   // --- Manejador de Registro ---
   const handleRegister = async () => {
-    // Validaciones simples
     if (!formData.plate) {
       alert("Por favor ingresa la placa del vehículo.")
       return
     }
+
+    if (!formData.plate.includes("-")) {
+      alert("La placa debe incluir un guión (ej: ABC-123).")
+      return;
+    }
+
     if (!formData.autoAssign && !selectedSpaceId) {
       alert("Por favor selecciona un espacio manual.")
       return
     }
 
     try {
+      setLoading(true);
+
+      const existe = await verificarPlaca(formData.plate.toUpperCase());
+      if (existe) {
+        alert(`❌ Error: El vehículo con placa ${formData.plate} ya se encuentra DENTRO del estacionamiento.`);
+        setLoading(false);
+        return;
+      }
+
       const response = await registrarEntrada({
         placa: formData.plate.toUpperCase(),
         tipo_vehiculo: formData.type,
@@ -134,16 +251,15 @@ export function VehicleRegistration() {
 
       alert(`✅ ¡Registro Exitoso!\nTicket: ${response.ticket}\nEspacio: ${response.espacio}`)
 
-      // Resetear formulario
       setFormData({ ...formData, plate: "" })
       setSelectedSpaceId("")
-
-      // Recargar datos para actualizar tabla y quitar el espacio usado de la lista
       fetchData()
 
     } catch (err: any) {
       console.error(err)
       alert(`❌ Error: ${err.message || "No se pudo registrar el vehículo"}`)
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -151,7 +267,6 @@ export function VehicleRegistration() {
     alert(`Imprimiendo ticket ${vehicle.codigo_ticket} para placa ${vehicle.placa}`)
   }
 
-  // Filtrado en frontend
   const filteredVehicles = vehicles.filter((v) => {
     if (filterTicket && !v.codigo_ticket.includes(filterTicket.toUpperCase()) && !v.placa.includes(filterTicket.toUpperCase())) return false
     return true
@@ -234,7 +349,6 @@ export function VehicleRegistration() {
               </select>
             </div>
           ) : (
-            // Botón Registrar (si es automático ocupa el 4to slot)
             <div className="flex items-end">
               <Button onClick={handleRegister} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                 <Plus className="w-4 h-4 mr-2" />
@@ -244,7 +358,6 @@ export function VehicleRegistration() {
           )}
         </div>
 
-        {/* Botón Registrar (si es manual ocupa una nueva fila para no deformar el grid) */}
         {!formData.autoAssign && (
           <div className="mt-4 flex justify-end">
             <Button onClick={handleRegister} className="w-full md:w-1/4 bg-primary text-primary-foreground hover:bg-primary/90">
@@ -275,9 +388,9 @@ export function VehicleRegistration() {
         </div>
       </Card>
 
-      {/* --- Tabla de Historial --- */}
+      {/* --- Tabla de Activos --- */}
       <Card className="p-6 bg-card border border-border">
-        <h2 className="text-lg font-semibold mb-4">Vehículos en Parqueo ({filteredVehicles.length})</h2>
+        <h2 className="text-lg font-semibold mb-4">Tickets de vehículos en el Parqueo ({filteredVehicles.length})</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -306,7 +419,7 @@ export function VehicleRegistration() {
                     <td className="py-3 px-4">{vehicle.tipo_vehiculo}</td>
                     <td className="py-3 px-4">{vehicle.hora_ingreso}</td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-1 bg-accent/20 text-accent rounded text-xs font-medium">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
                         {vehicle.espacio}
                       </span>
                     </td>
@@ -321,14 +434,15 @@ export function VehicleRegistration() {
                         size="sm"
                         onClick={() => setDetailModal(vehicle)}
                         className="text-primary hover:bg-primary/10"
+                        title="Ver Detalles / Editar / Anular"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleReprint(vehicle)}
-                        className="text-secondary hover:bg-secondary/10"
+                        className="text-primary hover:bg-secondary/10"
                       >
                         <Printer className="w-4 h-4" />
                       </Button>
@@ -341,7 +455,19 @@ export function VehicleRegistration() {
         </div>
       </Card>
 
-      <DetailModal vehicle={detailModal} onClose={() => setDetailModal(null)} onEdit={() => { }} />
-    </div>
+
+
+      <DetailModal
+        vehicle={detailModal}
+        onClose={() => setDetailModal(null)}
+        onEdit={(updated) => {
+          setVehicles(prev => prev.map(v => v.id_vehiculo === updated.id_vehiculo ? updated : v))
+        }}
+        onAnulate={(id) => {
+          setVehicles(prev => prev.filter(v => v.id_vehiculo !== id));
+          fetchData(); // Refrescar espacios libres también
+        }}
+      />
+    </div >
   )
 }

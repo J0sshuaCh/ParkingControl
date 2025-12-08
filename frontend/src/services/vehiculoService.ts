@@ -12,6 +12,7 @@ export interface EspacioLibre {
 
 export interface VehiculoActivo {
     id_vehiculo: number;
+    id_ticket: number;
     placa: string;
     tipo_vehiculo: string;
     hora_ingreso: string;
@@ -60,5 +61,16 @@ export const registrarEntrada = async (datos: RegistroEntradaParams) => {
         return res.data; // Retorna { message, ticket, espacio }
     } catch (err: any) {
         throw err.response?.data || { message: "Error al registrar entrada" };
+    }
+};
+
+// 4. Verificar si la placa ya está en el parqueo
+export const verificarPlaca = async (placa: string): Promise<boolean> => {
+    try {
+        const res = await axios.get(`${API_URL}/verificar/${placa}`);
+        return res.data.existe; // Devuelve true si existe
+    } catch (err: any) {
+        console.error("Error verificando placa:", err);
+        return false; // Ante error, asumimos false para no bloquear (o manejar diferente)
     }
 };

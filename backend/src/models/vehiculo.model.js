@@ -1,82 +1,70 @@
 import { db } from '../database/connection.js';
 
 export const VehiculoModel = {
-  // 1. Obtener espacios libres
-  obtenerEspaciosLibres: async () => {
-    // Asegúrate de seleccionar el ID y el Código para el frontend
-    const sql = "SELECT id_espacio, codigo FROM espacio WHERE estado = 'libre' ORDER BY codigo ASC";
-    const [rows] = await db.query(sql);
-    return rows;
-  },
+    // 1. Obtener espacios libres (Consulta simple, se puede dejar directa o usar SP si creaste uno)
+    obtenerEspaciosLibres: async () => {
+        // Usamos la query directa o el SP `sp_buscar_espacios_libres` si lo tienes.
+        // En tu script anterior usaste una query directa en el SP de espacio, pero aquí lo mantenemos simple.
+        const sql = "SELECT id_espacio, codigo FROM espacio WHERE estado = 'libre' ORDER BY codigo ASC";
+        const [rows] = await db.query(sql);
+        return rows;
+    },
 
-  // 2. Buscar tarifa vigente para el tipo de vehículo (Necesario para el ticket)
-  obtenerTarifa: async (tipoVehiculo) => {
-    const sql = "SELECT id_tarifa FROM tarifa WHERE tipo_vehiculo = ? AND estado = 'En vigencia' LIMIT 1";
-    const [rows] = await db.query(sql, [tipoVehiculo]);
-    return rows[0];
-  },
+    // 2. Obtener tarifa (Consulta simple)
+    obtenerTarifa: async (tipoVehiculo) => {
+        const sql = "SELECT id_tarifa FROM tarifa WHERE tipo_vehiculo = ? AND estado = 'En vigencia' LIMIT 1";
+        const [rows] = await db.query(sql, [tipoVehiculo]);
+        return rows[0];
+    },
 
-  // 3. Registrar Ingreso COMPLETO (Vehículo + Espacio + Ticket)
-  registrarIngreso: async (placa, tipoVehiculo, idEspacio, idTarifa) => {
-    const connection = await db.getConnection(); // Usamos una conexión dedicada para la transacción
-    try {
-      await connection.beginTransaction();
+    // 3. Registrar Ingreso (Transacción Compleja -> Delegada al SP)
+    registrarIngreso: async (placa, tipoVehiculo, idEspacio, idTarifa) => {
+        try {
+            // Generamos el código del ticket aquí para control
+            const codigoTicket = `TK-${Date.now().toString().slice(-6)}`;
+            const idUsuario = 1; // Hardcodeado por ahora (admin)
 
-      // A. Insertar o Actualizar Vehículo
-      // Si la placa ya existe, actualizamos su info para "reactivar" el vehículo en el sistema
-      const sqlVehiculo = `
-        INSERT INTO vehiculos (placa, tipo_vehiculo, id_espacio, fecha_registro) 
-        VALUES (?, ?, ?, NOW())
-        ON DUPLICATE KEY UPDATE 
-            tipo_vehiculo = VALUES(tipo_vehiculo), 
-            id_espacio = VALUES(id_espacio), 
-            fecha_registro = NOW()
-      `;
-      await connection.query(sqlVehiculo, [placa, tipoVehiculo, idEspacio]);
+            const sql = "CALL sp_vehiculo_registrar_ingreso(?, ?, ?, ?, ?, ?)";
+            const params = [placa, tipoVehiculo, idEspacio, idTarifa, codigoTicket, idUsuario];
 
-      // Recuperar ID del vehículo (necesario porque insertId puede no ser fiable en update)
-      const [rowsV] = await connection.query("SELECT id_vehiculo FROM vehiculos WHERE placa = ?", [placa]);
-      const idVehiculo = rowsV[0].id_vehiculo;
+            const [result] = await db.query(sql, params);
 
-      // B. Actualizar Espacio a 'ocupado'
-      const sqlEspacio = "UPDATE espacio SET estado = 'ocupado' WHERE id_espacio = ?";
-      await connection.query(sqlEspacio, [idEspacio]);
+            // Recuperamos los datos que devuelve el SP
+            const data = result[0][0];
 
-      // C. Generar Ticket Inicial
-      // Generamos un código de ticket simple, ej: TK-123
-      const codigoTicket = `TK-${Date.now().toString().slice(-6)}`;
-      const sqlTicket = `
-                INSERT INTO ticket 
-                (codigo_ticket, hora_entrada, estado, id_vehiculo, id_espacio, id_tarifa, id_usuario_entrada) 
-                VALUES (?, NOW(), 'Emitido', ?, ?, ?, 1)
-            `;
-      // Nota: id_usuario_entrada = 1 (Admin hardcodeado por ahora, luego vendrá del login)
-      await connection.query(sqlTicket, [codigoTicket, idVehiculo, idEspacio, idTarifa]);
+            return {
+                id_vehiculo: data.id_vehiculo,
+                codigo_ticket: data.ticket
+            };
+        } catch (error) {
+            console.error("Error en VehiculoModel.registrarIngreso:", error);
+            throw error;
+        }
+    },
 
-      await connection.commit();
-      return { id_vehiculo: idVehiculo, codigo_ticket: codigoTicket };
+    // 4. Listar vehículos activos
+    obtenerVehiculosEnParqueo: async () => {
+        try {
+            const [rows] = await db.query("CALL sp_vehiculo_listar_activos()");
+            return rows[0];
+        } catch (error) {
+            console.error("Error en obtenerVehiculosEnParqueo:", error);
+            throw error;
+        }
+    },
 
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
+    // 5. Verificar si una placa tiene un ticket activo
+    verificarPlacaActiva: async (placa) => {
+        try {
+            // Reutilizamos sp_ticket_buscar_placa que busca tickets 'Emitido' para esa placa
+            const sql = "CALL sp_ticket_buscar_placa(?)";
+            const [rows] = await db.query(sql, [placa]);
+            // rows[0] contiene los resultados del primer SELECT del SP
+            // Si hay un resultado, significa que el vehículo está dentro
+            return rows[0].length > 0;
+        } catch (error) {
+            console.error("Error en verificarPlacaActiva:", error);
+            throw error;
+        }
     }
-  },
-
-  // 4. Listar vehículos activos (con ticket emitido)
-  obtenerVehiculosEnParqueo: async () => {
-    const sql = `
-            SELECT v.id_vehiculo, v.placa, v.tipo_vehiculo, 
-                   date_format(t.hora_entrada, "%H:%i") as hora_ingreso, 
-                   e.codigo as espacio, 'Activo' as status, t.codigo_ticket
-            FROM vehiculos v
-            JOIN espacio e ON v.id_espacio = e.id_espacio
-            JOIN ticket t ON v.id_vehiculo = t.id_vehiculo
-            WHERE t.estado = 'Emitido'
-            ORDER BY t.hora_entrada DESC
-        `;
-    const [rows] = await db.query(sql);
-    return rows;
-  }
 };

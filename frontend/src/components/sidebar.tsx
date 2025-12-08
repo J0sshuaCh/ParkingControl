@@ -1,28 +1,38 @@
 "use client"
 
 import { useState } from "react"
-import { Car, CreditCard, Grid3x3, Settings, ParkingCircle, LayoutDashboard, Clock, Sliders, ChevronLeft, ChevronRight, Moon, Sun } from "lucide-react"
+import { Car, CreditCard, Grid3x3, Settings, ParkingCircle, LayoutDashboard, Clock, ChevronLeft, ChevronRight, Moon, Sun, BarChart3, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
 
 interface SidebarProps {
   activeModule: string
   onModuleChange: (module: string) => void
+  userRole: string
 }
 
-export function Sidebar({ activeModule, onModuleChange }: SidebarProps) {
+export function Sidebar({ activeModule, onModuleChange, userRole }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const { theme, toggleTheme } = useTheme()
 
-  const modules = [
+  const allModules = [
     { id: "overview", label: "Panel de Control", icon: LayoutDashboard },
     { id: "vehicles", label: "Registro de Vehículos", icon: Car },
     { id: "billing", label: "Salida y Cobro", icon: CreditCard },
+    { id: "history", label: "Historial de Tickets", icon: FileText },
     { id: "spaces", label: "Gestión de Espacios", icon: Grid3x3 },
     { id: "shifts", label: "Gestión de Turnos", icon: Clock },
-    { id: "config", label: "Configuración", icon: Sliders },
+    { id: "reports", label: "Reportes", icon: BarChart3 },
     { id: "admin", label: "Administración", icon: Settings },
   ]
+
+  // Filter modules based on user role
+  const modules = allModules.filter(m => {
+    if (m.id === 'admin') return userRole.toLowerCase() === 'administrador';
+    if (m.id === 'reports') return userRole.toLowerCase() === 'administrador';
+    return true;
+  });
+
 
   return (
     <aside

@@ -1,0 +1,587 @@
+USE `parkingcontrol_db`;
+
+-- =============================================================================
+-- LIMPIEZA INICIAL
+-- =============================================================================
+DROP PROCEDURE IF EXISTS `sp_usuario_obtener_por_username`;
+
+DROP PROCEDURE IF EXISTS `sp_usuario_listar`;
+
+DROP PROCEDURE IF EXISTS `sp_usuario_editar`;
+
+DROP PROCEDURE IF EXISTS `sp_usuario_eliminar`;
+
+DROP PROCEDURE IF EXISTS `sp_espacio_mapa_ocupacion`;
+
+DROP PROCEDURE IF EXISTS `sp_espacio_reservar`;
+
+DROP PROCEDURE IF EXISTS `sp_espacio_liberar`;
+
+DROP PROCEDURE IF EXISTS `sp_tarifa_crud`;
+
+DROP PROCEDURE IF EXISTS `sp_ticket_listar`;
+
+DROP PROCEDURE IF EXISTS `sp_ticket_buscar_placa`;
+
+DROP PROCEDURE IF EXISTS `sp_ticket_pagar`;
+
+DROP PROCEDURE IF EXISTS `sp_vehiculo_registrar_ingreso`;
+
+DROP PROCEDURE IF EXISTS `sp_vehiculo_listar_activos`;
+
+DROP PROCEDURE IF EXISTS `sp_insertar_usuario`;
+
+DROP FUNCTION IF EXISTS `fn_verificar_contrasena`;
+
+-- =============================================================================
+-- 1. SEGURIDAD Y USUARIOS (Encriptación en Base de Datos)
+-- =============================================================================
+
+DELIMITER $$
+
+USE `parkingcontrol_db` $$
+-- function fn_verificar_contrasena
+CREATE DEFINER=`root`@`localhost` FUNCTION `fn_verificar_contrasena`(
+    p_username VARCHAR(50),
+    p_password_plano VARCHAR(255)
+) RETURNS tinyint(1)
+    READS SQL DATA
+BEGIN
+DECLARE v_password_hash VARCHAR(255);
+    
+    -- Obtener la contraseña encriptada almacenada
+    SELECT `password` INTO v_password_hash 
+    FROM `usuario` 
+    WHERE `username` = p_username 
+    LIMIT 1;
+    
+    -- Si no existe el usuario, retorna falso
+    IF v_password_hash IS NULL THEN
+        RETURN 0;
+    END IF;
+    
+    -- Compara el hash guardado con el hash calculado del input
+    IF v_password_hash = SHA2(p_password_plano, 256) THEN
+        RETURN 1; -- Coincide
+    ELSE
+        RETURN 0; -- No coincide
+    END IF;
+END$$
+
+DELIMITER;
+
+-- -----------------------------------------------------
+-- procedure sp_insertar_usuario
+-- -----------------------------------------------------
+
+DELIMITER $$
+
+CREATE PROCEDURE `sp_insertar_usuario`(
+    IN p_username VARCHAR(50),
+    IN p_password VARCHAR(255),
+    IN p_email VARCHAR(100),
+    IN p_nombre_completo VARCHAR(100),
+    IN p_id_rol INT
+)
+BEGIN
+    -- Insertar usando SHA2 para la contraseña y 'Activo' por defecto
+    INSERT INTO `usuario` (username, password, nombre_completo, id_rol, fecha_creacion, estado, email)
+    VALUES (
+        p_username, 
+        SHA2(p_password, 256), -- Encriptación nativa
+        p_nombre_completo, 
+        p_id_rol, 
+        NOW(), 
+        'Activo', 
+        p_email
+    );
+    
+    -- Devolver el ID generado para que el backend lo reciba
+    SELECT LAST_INSERT_ID() as id_usuario;
+END$$
+
+-- 1. GESTIÓN DE ESPACIOS (Mapa y Reservas)
+
+-- Obtener el mapa completo con estado, placa y reservas activas
+CREATE PROCEDURE `sp_espacio_mapa_ocupacion`()
+BEGIN
+    -- Auto-liberacion de espacios con reservas vencidas
+    UPDATE espacio e 
+    SET estado = 'libre' 
+    WHERE estado = 'reservado' 
+    AND NOT EXISTS (
+        SELECT 1 FROM reserva r 
+        WHERE r.id_espacio = e.id_espacio 
+        AND r.fecha_fin > NOW()
+    );
+
+    SELECT 
+        e.id_espacio AS dbId,
+        e.codigo AS id,
+        LOWER(e.estado) AS status,
+        COALESCE(v.placa, NULL) AS vehiclePlate,
+        COALESCE(r.motivo, NULL) AS reservedFor,
+        COALESCE(DATE_FORMAT(r.fecha_fin, '%Y-%m-%dT%H:%i:%s'), NULL) AS reservedUntil
+    FROM 
+        espacio e 
+    LEFT JOIN 
+        ticket t ON e.id_espacio = t.id_espacio AND t.estado = 'Emitido' AND t.hora_salida IS NULL
+    LEFT JOIN 
+        vehiculos v ON t.id_vehiculo = v.id_vehiculo
+    LEFT JOIN 
+        reserva r ON e.id_espacio = r.id_espacio AND r.fecha_fin > NOW()
+    ORDER BY e.codigo ASC;
+END$$
+
+-- Crear una reserva (Validando disponibilidad)
+CREATE PROCEDURE `sp_espacio_reservar`(
+    IN p_codigo_espacio VARCHAR(10),
+    IN p_motivo VARCHAR(255),
+    IN p_duracion_horas INT,
+    IN p_id_usuario INT
+)
+BEGIN
+    DECLARE v_id_espacio INT;
+    DECLARE v_filas_afectadas INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- Obtener ID
+        SELECT id_espacio INTO v_id_espacio FROM espacio WHERE codigo = p_codigo_espacio;
+        
+        IF v_id_espacio IS NULL THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Espacio no encontrado.';
+        END IF;
+
+        -- Intentar reservar solo si está libre
+        UPDATE espacio SET estado = 'reservado' WHERE id_espacio = v_id_espacio AND estado = 'libre';
+        SELECT ROW_COUNT() INTO v_filas_afectadas;
+
+        IF v_filas_afectadas = 0 THEN
+             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El espacio no está disponible para reservar.';
+        ELSE
+            INSERT INTO reserva (motivo, duracion, id_espacio, id_usuario_creador, fecha_inicio, fecha_fin)
+            VALUES (p_motivo, CONCAT(p_duracion_horas, ' horas'), v_id_espacio, p_id_usuario, NOW(), DATE_ADD(NOW(), INTERVAL p_duracion_horas HOUR));
+            
+            SELECT LAST_INSERT_ID() AS id_reserva, 'Espacio reservado exitosamente' AS mensaje;
+        END IF;
+    COMMIT;
+END$$
+
+-- Liberar espacio (Cancelar reserva o forzar liberación)
+CREATE PROCEDURE `sp_espacio_liberar`(IN p_id_espacio INT)
+BEGIN
+    START TRANSACTION;
+        UPDATE espacio SET estado = 'libre' WHERE id_espacio = p_id_espacio;
+        UPDATE reserva SET fecha_fin = NOW() WHERE id_espacio = p_id_espacio AND fecha_fin > NOW();
+        SELECT CONCAT('Espacio ', p_id_espacio, ' liberado.') AS mensaje;
+    COMMIT;
+END$$
+
+-- 2. GESTIÓN DE TARIFAS (CRUD Completo)
+CREATE PROCEDURE `sp_tarifa_crud`(
+    IN p_accion VARCHAR(10),       -- 'LISTAR', 'CREAR', 'EDITAR', 'ELIMINAR'
+    IN p_id_tarifa INT,            -- NULL si no aplica
+    IN p_tipo_vehiculo VARCHAR(20),-- NULL si no aplica
+    IN p_precio_hora DECIMAL(10,4),-- NULL si no aplica
+    IN p_estado VARCHAR(20)        -- NULL si no aplica
+)
+BEGIN
+    IF p_accion = 'LISTAR' THEN
+        SELECT * FROM tarifa;
+    
+    ELSEIF p_accion = 'CREAR' THEN
+        INSERT INTO tarifa (tipo_vehiculo, precio_hora, fecha_vigencia_inicio, estado)
+        VALUES (p_tipo_vehiculo, p_precio_hora, NOW(), IFNULL(p_estado, 'En vigencia'));
+        SELECT LAST_INSERT_ID() AS id_tarifa;
+    
+    ELSEIF p_accion = 'EDITAR' THEN
+        UPDATE tarifa 
+        SET precio_hora = p_precio_hora, estado = p_estado 
+        WHERE id_tarifa = p_id_tarifa;
+        SELECT ROW_COUNT() AS afectados;
+
+    ELSEIF p_accion = 'ELIMINAR' THEN
+        DELETE FROM tarifa WHERE id_tarifa = p_id_tarifa;
+        SELECT ROW_COUNT() AS afectados;
+    END IF;
+END$$
+
+-- 3. GESTIÓN DE TICKETS Y PAGOS
+
+-- Listar historial completo de tickets
+CREATE PROCEDURE `sp_ticket_listar`()
+BEGIN
+    SELECT 
+        t.id_ticket, t.codigo_ticket, t.hora_entrada, t.hora_salida,
+        t.tiempo_permanencia, t.monto_total, t.estado,
+        v.placa, v.tipo_vehiculo,
+        e.codigo AS codigo_espacio,
+        tr.precio_hora
+    FROM ticket t
+    JOIN vehiculos v ON t.id_vehiculo = v.id_vehiculo
+    JOIN espacio e   ON t.id_espacio   = e.id_espacio
+    JOIN tarifa tr   ON t.id_tarifa    = tr.id_tarifa
+    ORDER BY t.id_ticket DESC;
+END$$
+
+-- Editar ticket (placa y tipo)
+CREATE PROCEDURE `sp_ticket_editar`(
+    IN p_id_ticket INT,
+    IN p_nueva_placa VARCHAR(20),
+    IN p_nuevo_tipo VARCHAR(20)
+)
+BEGIN
+    DECLARE v_id_vehiculo INT;
+    
+    SELECT id_vehiculo INTO v_id_vehiculo FROM ticket WHERE id_ticket = p_id_ticket;
+    
+    UPDATE vehiculos 
+    SET placa = p_nueva_placa, tipo_vehiculo = p_nuevo_tipo 
+    WHERE id_vehiculo = v_id_vehiculo;
+    
+    SELECT ROW_COUNT() as afectados;
+END$$
+
+-- Anular ticket
+CREATE PROCEDURE `sp_ticket_anular`(
+    IN p_id_ticket INT,
+    IN p_motivo TEXT,
+    IN p_id_usuario INT
+)
+BEGIN
+    DECLARE v_id_espacio INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        SELECT id_espacio INTO v_id_espacio FROM ticket WHERE id_ticket = p_id_ticket;
+
+        -- Marcar ticket como anulado
+        UPDATE ticket 
+        SET estado = 'Anulado', 
+            motivo_anulacion = p_motivo, 
+            hora_salida = NOW(),
+            id_usuario_salida = p_id_usuario
+        WHERE id_ticket = p_id_ticket;
+
+        -- Liberar espacio
+        UPDATE espacio SET estado = 'libre' WHERE id_espacio = v_id_espacio;
+        
+        -- Desvincular vehículo del espacio
+        UPDATE vehiculos SET id_espacio = NULL WHERE id_espacio = v_id_espacio;
+
+        SELECT 'Ticket anulado correctamente' as mensaje;
+    COMMIT;
+END$$
+
+-- Historial semanal (Incluyendo Reservas)
+CREATE PROCEDURE `sp_ticket_historial_semanal`(
+    IN p_fecha_inicio DATE,
+    IN p_fecha_fin DATE
+)
+BEGIN
+    -- 1. Tickets Normales
+    SELECT 
+        t.id_ticket, 
+        t.codigo_ticket, 
+        DATE_FORMAT(t.hora_entrada, '%Y-%m-%d %H:%i') as hora_entrada,
+        DATE_FORMAT(t.hora_salida, '%Y-%m-%d %H:%i') as hora_salida,
+        t.tiempo_permanencia, 
+        t.monto_total, 
+        t.estado, 
+        t.motivo_anulacion,
+        v.placa, 
+        v.tipo_vehiculo,
+        e.codigo as codigo_espacio
+    FROM ticket t
+    JOIN vehiculos v ON t.id_vehiculo = v.id_vehiculo
+    JOIN espacio e ON t.id_espacio = e.id_espacio
+    WHERE DATE(t.hora_entrada) BETWEEN p_fecha_inicio AND p_fecha_fin
+
+    UNION ALL
+
+    -- 2. Reservas (Mapeadas como tickets)
+    SELECT 
+        (r.id_reserva * -1) as id_ticket, -- ID negativo para diferenciar
+        CONCAT('RES-', r.id_reserva) as codigo_ticket,
+        DATE_FORMAT(r.fecha_inicio, '%Y-%m-%d %H:%i') as hora_entrada,
+        DATE_FORMAT(r.fecha_fin, '%Y-%m-%d %H:%i') as hora_salida,
+        TIMESTAMPDIFF(MINUTE, r.fecha_inicio, r.fecha_fin) as tiempo_permanencia,
+        NULL as monto_total,
+        'Reservado' as estado,
+        r.motivo as motivo_anulacion, -- Usamos este campo para el motivo
+        'RESERVADO' as placa,
+        'N/A' as tipo_vehiculo,
+        e.codigo as codigo_espacio
+    FROM reserva r
+    JOIN espacio e ON r.id_espacio = e.id_espacio
+    WHERE DATE(r.fecha_inicio) BETWEEN p_fecha_inicio AND p_fecha_fin
+
+    ORDER BY hora_entrada DESC;
+END$$
+
+-- Buscar ticket activo para cobrar
+CREATE PROCEDURE `sp_ticket_buscar_placa`(IN p_placa VARCHAR(20))
+BEGIN
+    SELECT 
+        t.id_ticket, t.hora_entrada, t.hora_salida, t.tiempo_permanencia, t.monto_total,
+        t.id_espacio, t.id_vehiculo, t.id_tarifa,
+        v.placa, v.tipo_vehiculo,
+        e.codigo as codigo_espacio,
+        tr.precio_hora
+    FROM ticket t
+    JOIN vehiculos v ON t.id_vehiculo = v.id_vehiculo
+    JOIN espacio e   ON t.id_espacio   = e.id_espacio
+    JOIN tarifa tr   ON t.id_tarifa    = tr.id_tarifa
+    WHERE v.placa = p_placa AND t.estado = 'Emitido'
+    LIMIT 1;
+END$$
+
+-- Pagar y cerrar ticket (Liberando espacio)
+DROP PROCEDURE IF EXISTS `sp_ticket_pagar` $$
+
+CREATE PROCEDURE `sp_ticket_pagar`(
+    IN p_id_ticket INT,
+    IN p_id_espacio INT,
+    IN p_monto_total DECIMAL(10,2)
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- 1. Cerrar Ticket y CALCULAR TIEMPO
+        UPDATE ticket 
+        SET 
+            estado = 'Pagado', 
+            hora_salida = NOW(), 
+            -- Aquí calculamos los minutos transcurridos
+            tiempo_permanencia = TIMESTAMPDIFF(MINUTE, hora_entrada, NOW()), 
+            monto_total = p_monto_total
+        WHERE id_ticket = p_id_ticket;
+
+        -- 2. Liberar Espacio
+        UPDATE espacio SET estado = 'libre' WHERE id_espacio = p_id_espacio;
+
+        -- 3. Desvincular vehículo
+        UPDATE vehiculos SET id_espacio = NULL WHERE id_espacio = p_id_espacio;
+        
+    COMMIT;
+    SELECT 'Ticket pagado, tiempo calculado y espacio liberado' AS mensaje;
+END$$
+
+-- 4. GESTIÓN DE VEHÍCULOS (Entrada y Listado)
+
+-- Registrar Entrada (Lógica Transaccional Compleja)
+CREATE PROCEDURE `sp_vehiculo_registrar_ingreso`(
+    IN p_placa VARCHAR(20),
+    IN p_tipo_vehiculo VARCHAR(20),
+    IN p_id_espacio INT,
+    IN p_id_tarifa INT,
+    IN p_codigo_ticket_generado VARCHAR(50),
+    IN p_id_usuario INT
+)
+BEGIN
+    DECLARE v_id_vehiculo INT;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        -- 1. Insertar o Actualizar Vehículo
+        INSERT INTO vehiculos (placa, tipo_vehiculo, id_espacio, fecha_registro) 
+        VALUES (p_placa, p_tipo_vehiculo, p_id_espacio, NOW())
+        ON DUPLICATE KEY UPDATE 
+            tipo_vehiculo = VALUES(tipo_vehiculo), 
+            id_espacio = VALUES(id_espacio), 
+            fecha_registro = NOW();
+            
+        SELECT id_vehiculo INTO v_id_vehiculo FROM vehiculos WHERE placa = p_placa;
+
+        -- 2. Ocupar Espacio
+        UPDATE espacio SET estado = 'ocupado' WHERE id_espacio = p_id_espacio;
+
+        -- 3. Generar Ticket
+        INSERT INTO ticket (codigo_ticket, hora_entrada, estado, id_vehiculo, id_espacio, id_tarifa, id_usuario_entrada, fecha_emision) 
+        VALUES (p_codigo_ticket_generado, NOW(), 'Emitido', v_id_vehiculo, p_id_espacio, p_id_tarifa, p_id_usuario, NOW());
+
+    COMMIT;
+    
+    SELECT v_id_vehiculo as id_vehiculo, p_codigo_ticket_generado as ticket;
+END$$
+
+-- Listar vehículos actualmente en el parqueo
+CREATE PROCEDURE `sp_vehiculo_listar_activos`()
+BEGIN
+    SELECT 
+        v.id_vehiculo, v.placa, v.tipo_vehiculo, 
+        DATE_FORMAT(t.hora_entrada, "%H:%i") as hora_ingreso, 
+        e.codigo as espacio, 
+        'Activo' as status, 
+        t.codigo_ticket,
+        t.id_ticket
+    FROM vehiculos v
+    JOIN espacio e ON v.id_espacio = e.id_espacio
+    JOIN ticket t ON v.id_vehiculo = t.id_vehiculo
+    WHERE t.estado = 'Emitido'
+    ORDER BY t.hora_entrada DESC;
+END$$
+
+-- =============================================================================
+-- 5. PROCEDIMIENTOS ADICIONALES PARA USUARIOS
+-- =============================================================================
+
+-- 1. Obtener datos del usuario (usado en el Login tras verificar contraseña)
+DROP PROCEDURE IF EXISTS `sp_usuario_obtener_por_username` $$
+
+CREATE PROCEDURE `sp_usuario_obtener_por_username` (IN p_username VARCHAR(50)) BEGIN
+SELECT u.id_usuario, u.username, u.nombre_completo, u.email, u.estado, u.id_rol, r.nombre_rol
+FROM usuario u
+    JOIN rol r ON u.id_rol = r.id_rol
+WHERE
+    u.username = p_username;
+
+END $$
+
+-- 2. Listar todos los usuarios con su rol
+DROP PROCEDURE IF EXISTS `sp_usuario_listar` $$
+
+CREATE PROCEDURE `sp_usuario_listar` () BEGIN
+SELECT u.id_usuario, u.username, u.nombre_completo, u.email, u.estado, r.nombre_rol
+FROM usuario u
+    JOIN rol r ON u.id_rol = r.id_rol
+ORDER BY u.id_usuario ASC;
+
+END $$
+
+-- 3. Editar usuario
+DROP PROCEDURE IF EXISTS `sp_usuario_editar` $$
+
+CREATE PROCEDURE `sp_usuario_editar` (
+    IN p_id_usuario INT,
+    IN p_nombre_completo VARCHAR(100),
+    IN p_email VARCHAR(100),
+    IN p_estado ENUM('Activo', 'Ausente'),
+    IN p_id_rol INT
+) BEGIN
+UPDATE usuario
+SET
+    nombre_completo = IFNULL(
+        p_nombre_completo,
+        nombre_completo
+    ),
+    email = IFNULL(p_email, email),
+    estado = IFNULL(p_estado, estado),
+    id_rol = IFNULL(p_id_rol, id_rol)
+WHERE
+    id_usuario = p_id_usuario;
+
+-- Devolver cuántas filas se afectaron
+SELECT ROW_COUNT() as afectados;
+
+END $$
+
+-- 4. Eliminar usuario
+DROP PROCEDURE IF EXISTS `sp_usuario_eliminar` $$
+
+CREATE PROCEDURE `sp_usuario_eliminar` (IN p_id_usuario INT) BEGIN
+DELETE FROM usuario
+WHERE
+    id_usuario = p_id_usuario;
+
+SELECT ROW_COUNT() as afectados;
+
+END $$
+
+-- =============================================================================
+-- 5. PROCEDIMIENTOS ADICIONALES PARA REPORTES
+-- =============================================================================
+
+DELIMITER;
+
+USE `parkingcontrol_db`;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS `sp_reporte_avanzado` $$
+
+CREATE PROCEDURE `sp_reporte_avanzado`(
+    IN p_fecha_inicio DATE,
+    IN p_fecha_fin DATE,
+    IN p_id_usuario_filtro INT,   -- Opcional: ID del empleado a evaluar (NULL para todos)
+    IN p_id_usuario_generador INT,-- Quién solicita el reporte (Admin/Supervisor)
+    IN p_formato VARCHAR(20)      -- 'PDF' o 'Excel' (para registro)
+)
+BEGIN
+    DECLARE v_total_ingresos DECIMAL(10,2);
+    DECLARE v_total_vehiculos INT;
+    DECLARE v_promedio_permanencia DECIMAL(10,2);
+    DECLARE v_id_reporte INT;
+
+    -- 1. Calcular Métricas Generales (Tickets PAGADOS en ese rango)
+    SELECT 
+        COALESCE(SUM(monto_total), 0),
+        COUNT(*),
+        COALESCE(AVG(tiempo_permanencia), 0)
+    INTO 
+        v_total_ingresos,
+        v_total_vehiculos,
+        v_promedio_permanencia
+    FROM ticket
+    WHERE estado = 'Pagado'
+    AND DATE(hora_salida) BETWEEN p_fecha_inicio AND p_fecha_fin
+    AND (p_id_usuario_filtro IS NULL OR id_usuario_salida = p_id_usuario_filtro);
+
+    -- 2. Guardar el Historial del Reporte (Requisito de "almacenar 6 meses")
+    INSERT INTO reporte (
+        tipo_reporte, fecha_generacion, fecha_inicio, fecha_fin, 
+        total_ingresos, total_vehiculos, promedio_ocupacion, 
+        formato, id_usuario_generador
+    ) VALUES (
+        'Final', NOW(), p_fecha_inicio, p_fecha_fin,
+        v_total_ingresos, v_total_vehiculos, v_promedio_permanencia,
+        p_formato, p_id_usuario_generador
+    );
+    
+    SET v_id_reporte = LAST_INSERT_ID();
+
+    -- 3. RESULT SET 1: Resumen General (Para Tarjetas Informativas)
+    SELECT 
+        v_id_reporte AS id_reporte,
+        v_total_ingresos AS total_ingresos,
+        v_total_vehiculos AS total_vehiculos,
+        ROUND(v_promedio_permanencia, 2) AS promedio_minutos_permanencia,
+        IFNULL(v_total_ingresos / NULLIF(v_total_vehiculos, 0), 0) AS ticket_promedio;
+
+    -- 4. RESULT SET 2: Desglose Diario (Para Gráficos de Línea/Barra)
+    SELECT 
+        DATE(hora_salida) as fecha,
+        COUNT(*) as cantidad_vehiculos,
+        SUM(monto_total) as ingresos_dia
+    FROM ticket
+    WHERE estado = 'Pagado'
+    AND DATE(hora_salida) BETWEEN p_fecha_inicio AND p_fecha_fin
+    AND (p_id_usuario_filtro IS NULL OR id_usuario_salida = p_id_usuario_filtro)
+    GROUP BY DATE(hora_salida)
+    ORDER BY fecha ASC;
+
+END$$
+
+DELIMITER;
+
+-- Fin del script

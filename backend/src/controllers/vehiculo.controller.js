@@ -70,5 +70,19 @@ export const VehiculoController = {
       console.error(error);
       res.status(500).json({ message: "Error interno al registrar entrada.", error: error.message });
     }
+  },
+
+  // GET: Verificar si una placa está en el parqueo
+  verificarPlaca: async (req, res) => {
+    const { placa } = req.params;
+    try {
+      if (!placa) return res.status(400).json({ message: "Se requiere la placa" });
+
+      const existe = await VehiculoModel.verificarPlacaActiva(placa.toUpperCase());
+      res.json({ existe });
+
+    } catch (error) {
+      res.status(500).json({ message: "Error al verificar placa", error: error.message });
+    }
   }
 };

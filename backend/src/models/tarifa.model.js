@@ -4,8 +4,9 @@ export const TarifaModel = {
     // Obtener todas las tarifas
     getAll: async () => {
         try {
-            const [rows] = await db.query("SELECT * FROM tarifa");
-            return rows;
+            // 'LISTAR' no requiere los otros parámetros, enviamos NULL
+            const [rows] = await db.query("CALL sp_tarifa_crud('LISTAR', NULL, NULL, NULL, NULL)");
+            return rows[0];
         } catch (error) {
             console.error("Error en TarifaModel.getAll:", error);
             throw error;
@@ -13,37 +14,14 @@ export const TarifaModel = {
     },
 
     // Crear tarifa
-    create: async ({ tipo_vehiculo, precio_hora, fecha_vigencia_inicio, fecha_vigencia_fin, estado }) => {
+    create: async ({ tipo_vehiculo, precio_hora, estado }) => {
         try {
-            // NOTA: Lo ideal es que id_tarifa sea AUTO_INCREMENT en la DB.
-            // Si no lo es, usamos una subconsulta para obtener el siguiente ID seguro (Max + 1)
-            // o generamos uno si la tabla está vacía.
-            const [maxIdRow] = await db.query("SELECT MAX(id_tarifa) as maxId FROM tarifa");
-            const newId = (maxIdRow[0].maxId || 0) + 1;
-
-            const sql = `
-                INSERT INTO tarifa 
-                (id_tarifa, tipo_vehiculo, precio_hora, fecha_vigencia_inicio, fecha_vigencia_fin, estado) 
-                VALUES (?, ?, ?, ?, ?, ?)
-            `;
-
-            const valores = [
-                newId,
-                tipo_vehiculo,
-                precio_hora,
-                fecha_vigencia_inicio,
-                fecha_vigencia_fin || null,
-                estado || 'En vigencia'
-            ];
-
-            await db.query(sql, valores);
-
-            return {
-                id_tarifa: newId,
-                tipo_vehiculo,
-                precio_hora,
-                estado
-            };
+            // 'CREAR', id=NULL, tipo, precio, estado
+            const sql = "CALL sp_tarifa_crud('CREAR', NULL, ?, ?, ?)";
+            const [result] = await db.query(sql, [tipo_vehiculo, precio_hora, estado || 'En vigencia']);
+            
+            const nuevoId = result[0][0].id_tarifa;
+            return { id_tarifa: nuevoId, tipo_vehiculo, precio_hora, estado };
         } catch (error) {
             console.error("Error en TarifaModel.create:", error);
             throw error;
@@ -51,13 +29,15 @@ export const TarifaModel = {
     },
 
     // Actualizar tarifa
-    update: async (id, { precio_hora, estado, fecha_vigencia_fin }) => {
+    update: async (id, { precio_hora, estado }) => {
         try {
-            // Construimos la query dinámicamente o actualizamos campos fijos según tu lógica
-            const sql = "UPDATE tarifa SET precio_hora = ?, estado = ?, fecha_vigencia_fin = ? WHERE id_tarifa = ?";
-            const [result] = await db.query(sql, [precio_hora, estado, fecha_vigencia_fin, id]);
-
-            return result.affectedRows > 0; // Retorna true si actualizó algo
+            // 'EDITAR', id, NULL, precio, estado
+            const sql = "CALL sp_tarifa_crud('EDITAR', ?, NULL, ?, ?)";
+            const [result] = await db.query(sql, [id, precio_hora, estado]);
+            
+            // Verificamos si hubo filas afectadas en el resultado del SP
+            const afectados = result[0][0].afectados;
+            return afectados > 0;
         } catch (error) {
             console.error("Error en TarifaModel.update:", error);
             throw error;
@@ -67,8 +47,12 @@ export const TarifaModel = {
     // Eliminar tarifa
     delete: async (id) => {
         try {
-            const [result] = await db.query("DELETE FROM tarifa WHERE id_tarifa = ?", [id]);
-            return result.affectedRows > 0;
+            // 'ELIMINAR', id, NULL, NULL, NULL
+            const sql = "CALL sp_tarifa_crud('ELIMINAR', ?, NULL, NULL, NULL)";
+            const [result] = await db.query(sql, [id]);
+            
+            const afectados = result[0][0].afectados;
+            return afectados > 0;
         } catch (error) {
             console.error("Error en TarifaModel.delete:", error);
             throw error;

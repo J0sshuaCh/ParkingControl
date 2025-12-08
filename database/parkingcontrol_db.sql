@@ -1,3 +1,5 @@
+-- MySQL Workbench Forward Engineering
+
 SET @OLD_UNIQUE_CHECKS = @@UNIQUE_CHECKS, UNIQUE_CHECKS = 0;
 
 SET
@@ -9,19 +11,32 @@ SET
     SQL_MODE = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
 -- -----------------------------------------------------
--- 1. Reiniciar Schema
+-- Schema parkingcontrol_db
 -- -----------------------------------------------------
-DROP SCHEMA IF EXISTS `parkingcontrol_db`;
-
 CREATE SCHEMA IF NOT EXISTS `parkingcontrol_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 USE `parkingcontrol_db`;
 
 -- -----------------------------------------------------
--- 2. Creación de Tablas
+-- Table `parkingcontrol_db`.`espacio`
 -- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `parkingcontrol_db`.`espacio` (
+    `id_espacio` INT NOT NULL AUTO_INCREMENT,
+    `codigo` VARCHAR(5) NOT NULL,
+    `letra_espacio` VARCHAR(1) NOT NULL,
+    `estado` ENUM(
+        'libre',
+        'ocupado',
+        'reservado'
+    ) NULL DEFAULT 'libre',
+    PRIMARY KEY (`id_espacio`),
+    UNIQUE INDEX `codigo_UNIQUE` (`codigo` ASC) VISIBLE,
+    INDEX `idx_estado` (`estado` ASC) VISIBLE
+) ENGINE = InnoDB AUTO_INCREMENT = 64 DEFAULT CHARACTER SET = utf8mb3;
 
--- Tabla `rol`
+-- -----------------------------------------------------
+-- Table `parkingcontrol_db`.`rol`
+-- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `rol` (
     `id_rol` INT NOT NULL,
     `nombre_rol` VARCHAR(15) NOT NULL,
@@ -30,11 +45,13 @@ CREATE TABLE IF NOT EXISTS `rol` (
     UNIQUE INDEX `nombre_rol_UNIQUE` (`nombre_rol` ASC) VISIBLE
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb3;
 
--- Tabla `usuario`
+-- -----------------------------------------------------
+-- Table `parkingcontrol_db`.`usuario`
+-- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `usuario` (
-    `id_usuario` INT NOT NULL,
+    `id_usuario` INT NOT NULL AUTO_INCREMENT,
     `username` VARCHAR(50) NOT NULL,
-    `password` VARCHAR(255) NOT NULL,
+    `password` VARCHAR(255) NOT NULL, -- Aquí se guardará el SHA256
     `nombre_completo` VARCHAR(100) NOT NULL,
     `email` VARCHAR(100) NULL DEFAULT NULL,
     `estado` ENUM('Activo', 'Ausente') NULL DEFAULT 'Activo',
@@ -46,42 +63,48 @@ CREATE TABLE IF NOT EXISTS `usuario` (
     CONSTRAINT `fk_usuario_rol` FOREIGN KEY (`id_rol`) REFERENCES `rol` (`id_rol`)
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb3;
 
--- Tabla `espacio`
-CREATE TABLE IF NOT EXISTS `espacio` (
-    `id_espacio` INT NOT NULL AUTO_INCREMENT,
-    `codigo` VARCHAR(5) NOT NULL, -- Formato A-01
-    `letra_espacio` VARCHAR(1) NOT NULL,
-    `estado` ENUM(
-        'libre',
-        'ocupado',
-        'reservado'
-    ) NULL DEFAULT 'libre',
-    PRIMARY KEY (`id_espacio`),
-    UNIQUE INDEX `codigo_UNIQUE` (`codigo` ASC) VISIBLE,
-    INDEX `idx_estado` (`estado` ASC) VISIBLE
+-- -----------------------------------------------------
+-- Table `parkingcontrol_db`.`reporte`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `parkingcontrol_db`.`reporte` (
+    `id_reporte` INT NOT NULL AUTO_INCREMENT,
+    `tipo_reporte` ENUM('Parcial', 'Final', 'Rapido') NOT NULL,
+    `fecha_generacion` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `fecha_inicio` DATE NOT NULL,
+    `fecha_fin` DATE NOT NULL,
+    `total_ingresos` DECIMAL(10, 2) NULL DEFAULT NULL,
+    `total_vehiculos` INT NULL DEFAULT NULL,
+    `promedio_ocupacion` DECIMAL(5, 2) NULL DEFAULT NULL,
+    `ruta_archivo` VARCHAR(255) NULL DEFAULT NULL,
+    `formato` ENUM('Excel', 'PDF') NOT NULL,
+    `id_usuario_generador` INT NOT NULL,
+    PRIMARY KEY (`id_reporte`),
+    INDEX `fk_reporte_usuario_idx` (`id_usuario_generador` ASC) VISIBLE,
+    CONSTRAINT `fk_reporte_usuario` FOREIGN KEY (`id_usuario_generador`) REFERENCES `parkingcontrol_db`.`usuario` (`id_usuario`)
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb3;
 
--- Tabla `vehiculos` (Sin opción 'Bus')
-CREATE TABLE IF NOT EXISTS `vehiculos` (
-    `id_vehiculo` INT NOT NULL AUTO_INCREMENT,
-    `placa` VARCHAR(20) NOT NULL,
-    `tipo_vehiculo` ENUM(
-        'Sedan',
-        'SUV',
-        'Compacto',
-        'Camioneta',
-        'Moto'
-    ) NOT NULL,
-    `fecha_registro` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
-    `id_espacio` INT NULL,
-    PRIMARY KEY (`id_vehiculo`),
-    UNIQUE INDEX `placa_UNIQUE` (`placa` ASC) VISIBLE,
-    INDEX `fk_vehiculo_espacio_idx` (`id_espacio` ASC) VISIBLE,
-    CONSTRAINT `fk_vehiculo_espacio` FOREIGN KEY (`id_espacio`) REFERENCES `espacio` (`id_espacio`)
+-- -----------------------------------------------------
+-- Table `parkingcontrol_db`.`reserva`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `parkingcontrol_db`.`reserva` (
+    `id_reserva` INT NOT NULL AUTO_INCREMENT,
+    `motivo` VARCHAR(255) NULL DEFAULT NULL,
+    `duracion` VARCHAR(100) NULL DEFAULT NULL,
+    `id_espacio` INT NOT NULL,
+    `id_usuario_creador` INT NOT NULL,
+    `fecha_inicio` DATETIME NOT NULL,
+    `fecha_fin` DATETIME NOT NULL,
+    PRIMARY KEY (`id_reserva`),
+    INDEX `fk_reserva_espacio_idx` (`id_espacio` ASC) VISIBLE,
+    INDEX `fk_reserva_usuario_idx` (`id_usuario_creador` ASC) VISIBLE,
+    CONSTRAINT `fk_reserva_espacio` FOREIGN KEY (`id_espacio`) REFERENCES `parkingcontrol_db`.`espacio` (`id_espacio`),
+    CONSTRAINT `fk_reserva_usuario` FOREIGN KEY (`id_usuario_creador`) REFERENCES `parkingcontrol_db`.`usuario` (`id_usuario`)
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb3;
 
--- Tabla `tarifa` (Sin opción 'Bus')
-CREATE TABLE IF NOT EXISTS `tarifa` (
+-- -----------------------------------------------------
+-- Table `parkingcontrol_db`.`tarifa`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `parkingcontrol_db`.`tarifa` (
     `id_tarifa` INT NOT NULL AUTO_INCREMENT,
     `tipo_vehiculo` ENUM(
         'Sedan',
@@ -95,32 +118,40 @@ CREATE TABLE IF NOT EXISTS `tarifa` (
     `fecha_vigencia_fin` DATE NULL DEFAULT NULL,
     `estado` ENUM('En vigencia', 'Pasado') NULL DEFAULT 'En vigencia',
     PRIMARY KEY (`id_tarifa`)
+) ENGINE = InnoDB AUTO_INCREMENT = 6 DEFAULT CHARACTER SET = utf8mb3;
+
+-- -----------------------------------------------------
+-- Table `parkingcontrol_db`.`vehiculos`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `parkingcontrol_db`.`vehiculos` (
+    `id_vehiculo` INT NOT NULL AUTO_INCREMENT,
+    `placa` VARCHAR(20) NOT NULL,
+    `tipo_vehiculo` ENUM(
+        'Sedan',
+        'SUV',
+        'Compacto',
+        'Camioneta',
+        'Moto'
+    ) NOT NULL,
+    `fecha_registro` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `id_espacio` INT NULL DEFAULT NULL,
+    PRIMARY KEY (`id_vehiculo`),
+    UNIQUE INDEX `placa_UNIQUE` (`placa` ASC) VISIBLE,
+    INDEX `fk_vehiculo_espacio_idx` (`id_espacio` ASC) VISIBLE,
+    CONSTRAINT `fk_vehiculo_espacio` FOREIGN KEY (`id_espacio`) REFERENCES `parkingcontrol_db`.`espacio` (`id_espacio`)
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb3;
 
--- Tabla `reserva`
-CREATE TABLE IF NOT EXISTS `reserva` (
-    `id_reserva` INT NOT NULL AUTO_INCREMENT,
-    `motivo` VARCHAR(255) NULL DEFAULT NULL,
-    `duracion` VARCHAR(100) NULL DEFAULT NULL,
-    `id_espacio` INT NOT NULL,
-    `id_usuario_creador` INT NOT NULL,
-    `fecha_inicio` DATETIME NOT NULL,
-    `fecha_fin` DATETIME NOT NULL,
-    PRIMARY KEY (`id_reserva`),
-    INDEX `fk_reserva_espacio_idx` (`id_espacio` ASC) VISIBLE,
-    INDEX `fk_reserva_usuario_idx` (`id_usuario_creador` ASC) VISIBLE,
-    CONSTRAINT `fk_reserva_espacio` FOREIGN KEY (`id_espacio`) REFERENCES `espacio` (`id_espacio`),
-    CONSTRAINT `fk_reserva_usuario` FOREIGN KEY (`id_usuario_creador`) REFERENCES `usuario` (`id_usuario`)
-) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb3;
-
--- Tabla `ticket` (Estado actualizado a 'Pagado')
-CREATE TABLE IF NOT EXISTS `ticket` (
+-- -----------------------------------------------------
+-- Table `parkingcontrol_db`.`ticket`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `parkingcontrol_db`.`ticket` (
     `id_ticket` INT NOT NULL AUTO_INCREMENT,
     `codigo_ticket` VARCHAR(50) NOT NULL,
     `hora_entrada` DATETIME NOT NULL,
     `hora_salida` DATETIME NULL DEFAULT NULL,
     `tiempo_permanencia` INT NULL DEFAULT NULL,
     `monto_total` DECIMAL(10, 2) NULL DEFAULT NULL,
+    `motivo_anulacion` TEXT NULL DEFAULT NULL,
     `estado` ENUM(
         'Emitido',
         'Pagado',
@@ -139,37 +170,19 @@ CREATE TABLE IF NOT EXISTS `ticket` (
     INDEX `fk_ticket_usuario_entrada_idx` (`id_usuario_entrada` ASC) VISIBLE,
     INDEX `fk_ticket_usuario_salida_idx` (`id_usuario_salida` ASC) VISIBLE,
     INDEX `fk_ticket_tarifa_idx` (`id_tarifa` ASC) VISIBLE,
-    CONSTRAINT `fk_ticket_espacio` FOREIGN KEY (`id_espacio`) REFERENCES `espacio` (`id_espacio`),
-    CONSTRAINT `fk_ticket_tarifa` FOREIGN KEY (`id_tarifa`) REFERENCES `tarifa` (`id_tarifa`),
-    CONSTRAINT `fk_ticket_usuario_entrada` FOREIGN KEY (`id_usuario_entrada`) REFERENCES `usuario` (`id_usuario`),
-    CONSTRAINT `fk_ticket_usuario_salida` FOREIGN KEY (`id_usuario_salida`) REFERENCES `usuario` (`id_usuario`),
-    CONSTRAINT `fk_ticket_vehiculo` FOREIGN KEY (`id_vehiculo`) REFERENCES `vehiculos` (`id_vehiculo`)
-) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb3;
-
--- Tabla `reporte`
-CREATE TABLE IF NOT EXISTS `reporte` (
-    `id_reporte` INT NOT NULL AUTO_INCREMENT,
-    `tipo_reporte` ENUM('Parcial', 'Final', 'Rapido') NOT NULL,
-    `fecha_generacion` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
-    `fecha_inicio` DATE NOT NULL,
-    `fecha_fin` DATE NOT NULL,
-    `total_ingresos` DECIMAL(10, 2) NULL DEFAULT NULL,
-    `total_vehiculos` INT NULL DEFAULT NULL,
-    `promedio_ocupacion` DECIMAL(5, 2) NULL DEFAULT NULL,
-    `ruta_archivo` VARCHAR(255) NULL DEFAULT NULL,
-    `formato` ENUM('Excel', 'PDF') NOT NULL,
-    `id_usuario_generador` INT NOT NULL,
-    PRIMARY KEY (`id_reporte`),
-    INDEX `fk_reporte_usuario_idx` (`id_usuario_generador` ASC) VISIBLE,
-    CONSTRAINT `fk_reporte_usuario` FOREIGN KEY (`id_usuario_generador`) REFERENCES `usuario` (`id_usuario`)
+    CONSTRAINT `fk_ticket_espacio` FOREIGN KEY (`id_espacio`) REFERENCES `parkingcontrol_db`.`espacio` (`id_espacio`),
+    CONSTRAINT `fk_ticket_tarifa` FOREIGN KEY (`id_tarifa`) REFERENCES `parkingcontrol_db`.`tarifa` (`id_tarifa`),
+    CONSTRAINT `fk_ticket_usuario_entrada` FOREIGN KEY (`id_usuario_entrada`) REFERENCES `parkingcontrol_db`.`usuario` (`id_usuario`),
+    CONSTRAINT `fk_ticket_usuario_salida` FOREIGN KEY (`id_usuario_salida`) REFERENCES `parkingcontrol_db`.`usuario` (`id_usuario`),
+    CONSTRAINT `fk_ticket_vehiculo` FOREIGN KEY (`id_vehiculo`) REFERENCES `parkingcontrol_db`.`vehiculos` (`id_vehiculo`)
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8mb3;
 
 -- -----------------------------------------------------
--- 3. Inserción de Datos Iniciales
+-- Inicialización de Datos
 -- -----------------------------------------------------
 
--- A. Insertar Rol Admin
-INSERT INTO
+-- 1. Insertar los roles
+INSERT IGNORE INTO
     rol (
         id_rol,
         nombre_rol,
@@ -177,12 +190,21 @@ INSERT INTO
     )
 VALUES (
         1,
-        'admin',
+        'administrador',
         'Administrador del sistema'
+    ),
+    (
+        2,
+        'supervisor',
+        'Supervisor de turno y caja'
+    ),
+    (
+        3,
+        'operador',
+        'Encargado de registro y cobro'
     );
-
--- B. Insertar Usuario Admin (password: admin)
-INSERT INTO
+-- 2. Insertar usuario 'admin'
+INSERT IGNORE INTO
     usuario (
         id_usuario,
         username,
@@ -204,7 +226,13 @@ VALUES (
         1
     );
 
--- C. Insertar Tarifas Base (Sin Bus)
+-- Esto asegura que la contraseña 'admin' esté encriptada con SHA256
+UPDATE usuario
+SET password = SHA2('admin', 256)
+WHERE
+    username = 'admin';
+
+-- 3. Insertar Tarifas Base
 INSERT INTO
     tarifa (
         tipo_vehiculo,
@@ -243,7 +271,7 @@ VALUES (
         'En vigencia'
     );
 
--- D. Generar Espacios (40 espacios: A-01 a D-10)
+-- 4. Generar espacios de parqueo (4 zonas x 10 espacios = 40 espacios)
 INSERT INTO
     espacio (codigo, letra_espacio, estado)
 SELECT CONCAT(
@@ -281,9 +309,6 @@ FROM (
     ) AS numbers
 ORDER BY letter, number;
 
--- -----------------------------------------------------
--- Restauración de configuraciones
--- -----------------------------------------------------
 SET SQL_MODE = @OLD_SQL_MODE;
 
 SET FOREIGN_KEY_CHECKS = @OLD_FOREIGN_KEY_CHECKS;
