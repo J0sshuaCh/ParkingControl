@@ -1,4 +1,4 @@
-# ParkingControl 🚗💨
+# ParkingControl 🚗
 
 **ParkingControl** es un sistema integral de gestión de estacionamientos diseñado para optimizar el control de entradas y salidas de vehículos, la administración de espacios y la facturación automática mediante tarifas configurables.
 
@@ -13,7 +13,7 @@ El proyecto implementa una arquitectura **Cliente-Servidor** moderna, separando 
 - [Instalación y Configuración](#-instalación-y-configuración)
   - [1. Base de Datos](#1-base-de-datos)
   - [2. Backend (API)](#2-backend-api)
-  - [3. Frontend (Cliente)](#3-frontend-cliente)
+  - [3. Frontend (Presentacion)](#3-frontend-presentacion)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
 - [Contribución](#-contribución)
 
@@ -22,10 +22,10 @@ El proyecto implementa una arquitectura **Cliente-Servidor** moderna, separando 
 ## 🚀 Características Principales
 
 * **Gestión de Espacios:** Visualización en tiempo real del estado de los espacios (Libre, Ocupado, Reservado).
-* **Control de Tickets:** Emisión de tickets de entrada con códigos únicos y cálculo automático de montos al momento de la salida.
+* **Control de Tickets:** Emisión de tickets de entrada con códigos únicos y cálculo automático de los montos al momento de la salida.
 * **Sistema de Tarifas:** Tarifas configurables por tipo de vehículo (Sedan, SUV, Moto, etc.).
 * **Gestión de Usuarios y Roles:** Sistema de autenticación con roles definidos (Admin, Supervisor, Operador).
-* **Seguridad:** Encriptación de contraseñas (SHA256) manejada directamente a nivel de base de datos.
+* **Seguridad:** Encriptación de contraseñas (SHA256) manejada directamente a nivel de la base de datos.
 * **Reportes:** Generación de reportes de ocupación e ingresos.
 
 ---
