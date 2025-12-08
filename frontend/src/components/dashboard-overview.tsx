@@ -1,7 +1,7 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-import { Car, ParkingCircle, TrendingUp, AlertCircle } from "lucide-react"
+import { Car, ParkingCircle, TrendingUp, CalendarClock } from "lucide-react"
 import { useEffect, useState } from "react"
 import { getDashboardOverview, DashboardData } from "@/services/dashboardService"
 
@@ -46,9 +46,9 @@ export function DashboardOverview() {
       trend: "Acumulado hoy",
     },
     {
-      title: "Alertas",
+      title: "Reservas",
       value: data ? data.stats.alerts.toString() : "...",
-      icon: AlertCircle,
+      icon: CalendarClock,
       color: "bg-orange-100 text-orange-600",
       trend: "Reservas activas",
     },
