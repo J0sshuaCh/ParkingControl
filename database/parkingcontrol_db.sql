@@ -10,6 +10,7 @@ SET
     @OLD_SQL_MODE = @@SQL_MODE,
     SQL_MODE = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
+-- DROP DATABASE IF EXISTS `parkingcontrol_db`; -- (Para reiniciar la bd)
 -- -----------------------------------------------------
 -- Schema parkingcontrol_db
 -- -----------------------------------------------------

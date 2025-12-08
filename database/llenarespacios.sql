@@ -54,7 +54,7 @@ FROM espacio
 WHERE
     estado = 'ocupado';
 
--- para revertir es esto
+-- LIMPIAR ESPACIOS
 SET SQL_SAFE_UPDATES = 0;
 
 -- Borrar los tickets de prueba

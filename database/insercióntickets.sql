@@ -1,6 +1,18 @@
 USE `parkingcontrol_db`;
 
 -- Reiniciamos la inserción de tickets asegurando que los códigos de espacio EXISTAN (A, B, C, D del 01 al 10)
+USE `parkingcontrol_db`;
+
+-- Script para insertar vehículos de prueba
+INSERT IGNORE INTO vehiculos (placa, tipo_vehiculo, fecha_registro, id_espacio) VALUES 
+('ABC-101', 'Sedan',     NOW(), NULL),
+('CMP-404', 'Compacto',  NOW(), NULL),
+('MTO-303', 'Moto',      NOW(), NULL),
+('SUV-202', 'SUV',       NOW(), NULL),
+('CAM-505', 'Camioneta', NOW(), NULL),
+('XYZ-999', 'Sedan',     NOW(), NULL),
+('FAST-77', 'Moto',      NOW(), NULL),
+('TUR-888', 'SUV',       NOW(), NULL);
 
 INSERT INTO
     ticket (
