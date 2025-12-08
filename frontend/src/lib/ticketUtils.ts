@@ -4,7 +4,8 @@ import type { VehiculoActivo } from "@/services/vehiculoService";
 import type { Ticket } from "@/services/ticketService";
 
 // Helper to format date
-const formatDate = (dateString: string | Date | undefined) => {
+// Helper to format date
+const formatDate = (dateString: string | Date | undefined | null) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleString();
 };
