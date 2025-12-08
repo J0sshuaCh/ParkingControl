@@ -24,8 +24,6 @@ export function Layout({
     <div className="flex h-screen w-full bg-gray-50 overflow-hidden">
 
       {/* 2. SIDEBAR DINÁMICO */}
-      {/* Le pasamos el 'activeModule' para que sepa qué botón resaltar */}
-      {/* Le pasamos 'userRole' para que oculte opciones prohibidas */}
       <Sidebar
         activeModule={activeModule}
         onModuleChange={onModuleChange}
@@ -34,14 +32,11 @@ export function Layout({
 
       <div className="flex flex-col flex-1 h-full overflow-hidden">
         {/* 3. HEADER CONECTADO */}
-        {/* 'onNavigate={onModuleChange}' es la clave para que el banner funcione */}
         <Header
           userName={userName}
           onLogout={onLogout}
           onNavigate={onModuleChange}
         />
-
-        {/* Contenido Principal con Scroll independiente */}
         <main className="flex-1 overflow-auto p-6">
           {children}
         </main>

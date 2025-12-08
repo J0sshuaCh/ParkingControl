@@ -56,10 +56,6 @@ export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
   }
 
   return (
-    // 3. USAMOS EL LAYOUT: Aquí ocurre la magia
-    // Al pasar 'onModuleChange={setActiveModule}', el Layout se encarga de:
-    // a) Decirle al Sidebar qué botón resaltar.
-    // b) Decirle al Header qué hacer cuando clickean la alerta "Estacionamiento Lleno".
     <Layout
       activeModule={activeModule}
       onModuleChange={setActiveModule}
@@ -67,7 +63,6 @@ export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
       userName={userName}
       onLogout={onLogout}
     >
-      {/* El contenido que cambia se inyecta aquí */}
       {renderModule()}
     </Layout>
   )

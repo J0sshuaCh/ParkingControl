@@ -44,15 +44,9 @@ export function ReportsModule() {
             setReportData(data);
 
             // 2. Cargar el detalle de tickets (Tabla)
-            // Nota: Aquí usamos el endpoint que tenías. 
-            // Idealmente, el backend debería aceptar filtros de fecha en /api/tickets también.
-            // Por ahora, traemos todos y filtramos en el cliente o mostramos lo que devuelva el backend.
             const res = await fetch('http://localhost:8800/api/tickets?estado=Pagado');
             if (res.ok) {
                 const tickets: PaidTicket[] = await res.json();
-
-                // Opcional: Filtrar en frontend si el backend devuelve todo el historial
-                // const ticketsFiltrados = tickets.filter(t => t.hora_salida >= fechaInicio && t.hora_salida <= fechaFin);
                 setPaidTickets(tickets);
             }
 
@@ -69,7 +63,6 @@ export function ReportsModule() {
         if (paidTickets.length === 0) return;
 
         // A. Formatear los datos para que el Excel se vea profesional
-        // Mapeamos el array original a un nuevo objeto con nombres de columnas bonitos
         const datosParaExcel = paidTickets.map(ticket => ({
             "Código Ticket": ticket.codigo_ticket,
             "Placa": ticket.placa,
