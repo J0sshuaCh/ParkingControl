@@ -14,8 +14,6 @@ El proyecto implementa una arquitectura **Cliente-Servidor** moderna, separando 
   - [1. Base de Datos](#1-base-de-datos)
   - [2. Backend (API)](#2-backend-api)
   - [3. Frontend (Presentacion)](#3-frontend-presentacion)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Contribución](#-contribución)
 
 ---
 
