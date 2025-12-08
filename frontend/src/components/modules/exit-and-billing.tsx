@@ -47,8 +47,18 @@ export function ExitAndBilling() {
     setCurrentTicket(null);
 
     try {
+      // 1. Buscamos el objeto vehiculo en nuestra lista local para obtener el codigo_ticket
+      // ya que el endpoint de buscarTicketPorPlaca no lo devuelve.
+      const selectedVehicle = vehicles.find(v => v.placa === plate.toUpperCase());
+
       const ticket = await buscarTicketPorPlaca(plate.toUpperCase());
-      setCurrentTicket(ticket);
+
+      // 2. Fusionamos el código que tenemos en la lista con los datos frescos del ticket
+      setCurrentTicket({
+        ...ticket,
+        codigo_ticket: selectedVehicle?.codigo_ticket || "N/A"
+      });
+
     } catch (err: any) {
       console.error(err);
       setError(err.message || "No se encontró el ticket o el vehículo ya salió.");
@@ -74,8 +84,24 @@ export function ExitAndBilling() {
     }
   };
 
-  const handlePrint = () => {
-    if (currentTicket) {
+  const handlePrint = async () => {
+    if (!currentTicket) return;
+
+    try {
+      // Refrescamos los datos para obtener hora y monto actualizados al momento de imprimir
+      const mTicket = await buscarTicketPorPlaca(currentTicket.placa);
+
+      // Fusionamos de nuevo el código de ticket (que persiste en currentTicket)
+      const ticketToPrint = {
+        ...mTicket,
+        codigo_ticket: currentTicket.codigo_ticket
+      };
+
+      generateExitTicket(ticketToPrint);
+
+    } catch (error) {
+      console.error("Error al refrescar ticket para impresión:", error);
+      // Fallback: imprimir lo que ya tenemos si falla el refresh
       generateExitTicket(currentTicket);
     }
   };
