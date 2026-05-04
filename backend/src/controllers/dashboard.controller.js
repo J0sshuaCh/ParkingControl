@@ -1,6 +1,8 @@
-import { DashboardModel } from '../models/dashboard.model.js';
+const DashboardModel = require('../models/dashboard.model.js');
 
-export const DashboardController = {
+console.log('TEST: DashboardModel.getStats:', typeof DashboardModel.getStats);
+console.log('TEST: DashboardModel.getRecentActivity:', typeof DashboardModel.getRecentActivity);
+const DashboardController = {
     getOverview: async (req, res) => {
         try {
             const stats = await DashboardModel.getStats();
@@ -16,3 +18,5 @@ export const DashboardController = {
         }
     }
 };
+
+module.exports = { DashboardController };

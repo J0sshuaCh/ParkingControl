@@ -1,6 +1,6 @@
-import { UsuarioModel } from "../models/usuario.model.js";
+const { UsuarioModel } = require("../models/usuario.model.js");
 
-export const UsuarioController = {
+const UsuarioController = {
     loginUsuario: async (req, res) => {
         const { username, password } = req.body;
 
@@ -104,3 +104,5 @@ export const UsuarioController = {
         }
     }
 };
+
+module.exports = { UsuarioController };

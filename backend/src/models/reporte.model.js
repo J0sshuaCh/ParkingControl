@@ -1,6 +1,5 @@
-import { db } from "../database/connection.js";
-
-export const ReporteModel = {
+const { db } = require('../database/connection.cjs');
+const ReporteModel = {
     // Generar reporte avanzado (Resumen + Gráficos + Guardado automático)
     generarReporteAvanzado: async (fechaInicio, fechaFin, idUsuarioFiltro, idUsuarioGenerador, formato) => {
         try {
@@ -22,6 +21,8 @@ export const ReporteModel = {
                 resumen: results[0][0],
                 grafica: results[1]
             };
+
+module.exports = { ReporteModel };
 
         } catch (error) {
             console.error("Error en ReporteModel.generarReporteAvanzado:", error);

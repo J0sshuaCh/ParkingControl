@@ -1,6 +1,6 @@
-import express from 'express';
+const express = require('express');
 
-import { buscarTicketPorPlaca, procesarPago, obtenerTickets, editarTicket, anularTicket, getHistorialSemanal } from "../controllers/ticket.controller.js";
+const { buscarTicketPorPlaca, procesarPago, obtenerTickets, editarTicket, anularTicket, getHistorialSemanal } = require("../controllers/ticket.controller.js");
 
 const router = express.Router();
 
@@ -11,4 +11,4 @@ router.put("/:id", editarTicket);
 router.post("/:id/anular", anularTicket);
 router.get("/", obtenerTickets);
 
-export default router;
+module.exports = router;

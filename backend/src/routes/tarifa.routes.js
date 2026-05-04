@@ -1,5 +1,5 @@
-import express from 'express';
-import { getTarifas, createTarifa, updateTarifa, deleteTarifa } from "../controllers/tarifa.controller.js";
+const express = require('express');
+const { getTarifas, createTarifa, updateTarifa, deleteTarifa } = require("../controllers/tarifa.controller.js");
 
 const router = express.Router();
 
@@ -8,4 +8,4 @@ router.post("/", createTarifa);
 router.put("/:id", updateTarifa);
 router.delete("/:id", deleteTarifa);
 
-export default router;
+module.exports = router;

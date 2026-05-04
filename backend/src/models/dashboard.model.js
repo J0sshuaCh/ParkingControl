@@ -1,6 +1,6 @@
-import { db } from '../database/connection.js';
+const { db } = require('../database/connection.cjs');
 
-export const DashboardModel = {
+const DashboardModel = {
     getStats: async () => {
         try {
             // 1. Vehículos Dentro
@@ -19,13 +19,13 @@ export const DashboardModel = {
             const [alertsRows] = await db.query("SELECT COUNT(*) as count FROM reserva WHERE fecha_fin > NOW()");
             const alertsCount = alertsRows[0].count;
 
-            return {
-                vehiclesInside: vehiclesCount,
-                freeSpaces: freeSpacesCount,
-                incomeToday: incomeToday,
-                alerts: alertsCount
-            };
-        } catch (error) {
+        return {
+            vehiclesInside: vehiclesCount,
+            freeSpaces: freeSpacesCount,
+            incomeToday: incomeToday,
+            alerts: alertsCount
+        };
+    } catch (error) {
             console.error("Error in DashboardModel.getStats:", error);
             throw error;
         }
@@ -54,3 +54,6 @@ export const DashboardModel = {
         }
     }
 };
+
+module.exports = DashboardModel;
+

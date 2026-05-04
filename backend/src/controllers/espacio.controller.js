@@ -1,6 +1,6 @@
-import { EspacioModel } from '../models/espacio.model.js';
+const { EspacioModel } = require('../models/espacio.model.js');
 
-export const EspacioController = {
+const EspacioController = {
     // HU7: Visualizar mapa de ocupación en tiempo real (GET)
     getMapaOcupacion: async (req, res) => {
         try {
@@ -60,3 +60,5 @@ export const EspacioController = {
         }
     }
 };
+
+module.exports = { EspacioController };

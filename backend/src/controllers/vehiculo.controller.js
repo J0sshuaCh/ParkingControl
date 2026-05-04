@@ -1,6 +1,6 @@
-import { VehiculoModel } from "../models/vehiculo.model.js";
+const VehiculoModel = require("../models/vehiculo.model.js");
 
-export const VehiculoController = {
+const VehiculoController = {
   // GET: Listar espacios libres
   listarEspaciosLibres: async (req, res) => {
     try {
@@ -86,3 +86,5 @@ export const VehiculoController = {
     }
   }
 };
+
+module.exports = { VehiculoController };

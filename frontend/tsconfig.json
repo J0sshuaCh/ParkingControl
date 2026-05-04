@@ -5,20 +5,17 @@
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": false,
     "skipLibCheck": true,
-    "esModuleInterop": false,
-    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true, // Cambiado a true para mejor compatibilidad en el ecosistema moderno
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "node", // Modernizado de node10 a 'node'
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "baseUrl": "./src",
-    "paths": {
-      "@/*": ["*"]
-    }
+    // Se elimina baseUrl y paths por ser obsoletos o gestionables mejor con Vite/Webpack.
+    // Si son necesarios, se debe revisar la configuración de build (vite.config.js).
   },
   "include": ["src"]
 }

@@ -1,6 +1,6 @@
-import { db } from '../database/connection.js'; 
+const { db } = require('../database/connection.cjs'); 
 
-export const EspacioModel = {
+const EspacioModel = {
     // HU7 - Obtener mapa de ocupación
     getMapaOcupacion: async () => {
         try {
@@ -41,3 +41,5 @@ export const EspacioModel = {
         }
     }
 };
+
+module.exports = { EspacioModel };

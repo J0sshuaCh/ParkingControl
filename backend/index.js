@@ -1,13 +1,13 @@
-import express from "express";
-import usuariosRoutes from "./src/routes/usuarios.routes.js";
-import vehiculoRoutes from './src/routes/vehiculo.routes.js';
-import espaciosRoutes from './src/routes/espacio.routes.js';
-import tarifaRoutes from './src/routes/tarifa.routes.js';
-import ticketRoutes from './src/routes/ticket.routes.js';
-import dashboardRoutes from './src/routes/dashboard.routes.js';
-import reporteRoutes from './src/routes/reporte.routes.js';
+const express = require("express");
+const usuariosRoutes = require("./src/routes/usuarios.routes.js");
+const vehiculoRoutes = require('./src/routes/vehiculo.routes.js');
+const espaciosRoutes = require('./src/routes/espacio.routes.js');
+const tarifaRoutes = require('./src/routes/tarifa.routes.js');
+const ticketRoutes = require('./src/routes/ticket.routes.js');
+const dashboardRoutes = require('./src/routes/dashboard.routes.js');
+const reporteRoutes = require('./src/routes/reporte.routes.js');
 
-import cors from "cors"
+const cors = require("cors");
 
 const app = express();
 app.use(express.json());

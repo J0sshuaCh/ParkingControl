@@ -1,18 +1,15 @@
-import { TicketModel } from "../models/ticket.model.js";
+const { TicketModel } = require("../models/ticket.model.js");
 
-export const buscarTicketPorPlaca = async (req, res) => {
+const buscarTicketPorPlaca = async (req, res) => {
     const { placa } = req.params;
     try {
         const ticket = await TicketModel.buscarPorPlaca(placa);
         if (!ticket) {
             return res.status(404).json({ message: "No se encontró un ticket activo para esta placa." });
         }
-
         // Calcular cuánto sería si saliera AHORA
         const ahora = new Date();
         const calculo = TicketModel.calcularMonto(ticket.hora_entrada, ahora, ticket.precio_hora);
-
-        // CORRECCIÓN: Mapeamos los cálculos a los nombres que espera el frontend
         res.json({
             ...ticket,
             hora_salida: ahora, // Enviamos la hora de salida simulada
@@ -25,15 +22,13 @@ export const buscarTicketPorPlaca = async (req, res) => {
     }
 };
 
-export const procesarPago = async (req, res) => {
+const procesarPago = async (req, res) => {
     const { id_ticket, id_espacio, monto_final } = req.body;
-
     try {
         // Validar datos mínimos
         if (!id_ticket || !monto_final) {
             return res.status(400).json({ message: "Faltan datos para procesar el pago." });
         }
-
         await TicketModel.pagarTicket(id_ticket, id_espacio, monto_final);
         res.json({ message: "Pago registrado y salida autorizada." });
     } catch (error) {
@@ -42,17 +37,15 @@ export const procesarPago = async (req, res) => {
     }
 };
 
-export const obtenerTickets = async (req, res) => {
+const obtenerTickets = async (req, res) => {
     try {
         const tickets = await TicketModel.obtenerTodos();
-
         // Filtrar por estado si se proporciona en el query param
         const { estado } = req.query;
         if (estado) {
             const ticketsFiltrados = tickets.filter(t => t.estado === estado);
             return res.json(ticketsFiltrados);
         }
-
         res.json(tickets);
     } catch (err) {
         console.error(err);
@@ -60,7 +53,7 @@ export const obtenerTickets = async (req, res) => {
     }
 };
 
-export const editarTicket = async (req, res) => {
+const editarTicket = async (req, res) => {
     const { id } = req.params;
     const { nueva_placa, nuevo_tipo } = req.body;
     try {
@@ -71,7 +64,7 @@ export const editarTicket = async (req, res) => {
     }
 };
 
-export const anularTicket = async (req, res) => {
+const anularTicket = async (req, res) => {
     const { id } = req.params;
     const { motivo, id_usuario } = req.body;
     try {
@@ -82,7 +75,7 @@ export const anularTicket = async (req, res) => {
     }
 };
 
-export const getHistorialSemanal = async (req, res) => {
+const getHistorialSemanal = async (req, res) => {
     const { start, end } = req.query; // Expects YYYY-MM-DD
     try {
         if (!start || !end) {
@@ -94,3 +87,5 @@ export const getHistorialSemanal = async (req, res) => {
         res.status(500).json({ message: "Error al obtener historial", error: error.message });
     }
 };
+
+module.exports = { buscarTicketPorPlaca, procesarPago, obtenerTickets, editarTicket, anularTicket, getHistorialSemanal };

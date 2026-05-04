@@ -1,7 +1,7 @@
 // src/routes/espacio.routes.js
 
-import express from 'express';
-import { EspacioController } from '../controllers/espacio.controller.js';
+const express = require('express');
+const { EspacioController } = require('../controllers/espacio.controller.js');
 
 const router = express.Router();
 
@@ -17,4 +17,4 @@ router.post('/reservar', EspacioController.reservarEspacio);
 // PUT /api/espacios/liberar/:id (Usando id_espacio)
 router.put('/liberar/:id', EspacioController.liberarEspacio);
 
-export default router;
+module.exports = router;

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Car, CreditCard, Grid3x3, Settings, ParkingCircle, LayoutDashboard, Clock, ChevronLeft, ChevronRight, Moon, Sun, BarChart3, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTheme } from "@/components/theme-provider"
 
 interface SidebarProps {
@@ -13,7 +14,7 @@ interface SidebarProps {
 
 export function Sidebar({ activeModule, onModuleChange, userRole }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const { theme, toggleTheme } = useTheme()
+  const { theme, appliedTheme, setTheme } = useTheme()
 
   const allModules = [
     { id: "overview", label: "Panel de Control", icon: LayoutDashboard },
@@ -80,27 +81,33 @@ export function Sidebar({ activeModule, onModuleChange, userRole }: SidebarProps
       {/* SECCIÓN INFERIOR */}
       <div className="p-4 border-t border-border flex flex-col gap-2 justify-center">
 
-        {/* Botón Modo Oscuro */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleTheme}
-          className="w-full hover:bg-accent hover:text-accent-foreground justify-start px-0"
-        >
-          <div className={`flex items-center w-full ${isCollapsed ? "justify-center" : "px-4 gap-3"}`}>
-            {theme === "light" ? (
-              <Sun className="w-5 h-5 text-orange-500" />
-            ) : (
-              <Moon className="w-5 h-5 text-blue-500" />
-            )}
-
-            {!isCollapsed && (
-              <span className="text-sm truncate animate-in fade-in duration-200">
-                {theme === "light" ? "Modo Claro" : "Modo Oscuro"}
-              </span>
-            )}
-          </div>
-        </Button>
+        {/* Selector de Modo de Tema */}
+        <Select value={theme} onValueChange={setTheme}>
+          <SelectTrigger className="w-full justify-start px-0 gap-3">
+            <div className={`flex items-center w-full ${isCollapsed ? "justify-center" : "px-4 gap-3"}`}>
+              {appliedTheme === "light" ? (
+                <Sun className="w-5 h-5 text-orange-500" />
+              ) : (
+                <Moon className="w-5 h-5 text-blue-500" />
+              )}
+              {!isCollapsed && (
+                <span className="text-sm truncate animate-in fade-in duration-200">
+                  {theme === "system"
+                    ? "Sistema"
+                    : theme === "light"
+                    ? "Modo Claro"
+                    : "Modo Oscuro"
+                  }
+                </span>
+              )}
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="light">Modo Claro</SelectItem>
+            <SelectItem value="dark">Modo Oscuro</SelectItem>
+            <SelectItem value="system">Sistema</SelectItem>
+          </SelectContent>
+        </Select>
 
         {/* Botón Colapsar */}
         <Button

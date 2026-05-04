@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import { VehiculoController } from '../controllers/vehiculo.controller.js';
+const { Router } = require('express');
+const { VehiculoController } = require('../controllers/vehiculo.controller.js');
 
 const router = Router();
 
@@ -9,4 +9,4 @@ router.get('/', VehiculoController.listarVehiculosActivos); // Para getVehiculos
 router.get('/verificar/:placa', VehiculoController.verificarPlaca); // Validar antes de registrar
 router.post('/entrada', VehiculoController.registrarVehiculo); // Para registrarEntrada
 
-export default router;
+module.exports = router;
