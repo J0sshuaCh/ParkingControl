@@ -82,10 +82,13 @@ Si eres desarrollador y quieres modificar el código con **Hot-Reload** instant�
 2. **Corre el Frontend localmente:**
    ```bash
    cd frontend
+   cp .env.example .env  # O copiar manualmente el archivo
    npm install
    npm run dev
    ```
    *Acceso local: [http://localhost:5173](http://localhost:5173)*
+
+> **Nota sobre Seguridad:** Los archivos `.env` reales están ignorados por Git. Si clonas el proyecto para desarrollo manual, asegúrate de crear tu propio `.env` basándote en los archivos `.env.example` de cada carpeta. Si usas **Docker**, no es necesario ya que las variables están pre-configuradas en el `docker-compose.yml`.
 
 ---
 
