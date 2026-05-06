@@ -68,7 +68,7 @@ DECLARE v_password_hash VARCHAR(255);
     END IF;
 END$$
 
-DELIMITER;
+DELIMITER ;
 
 -- -----------------------------------------------------
 -- procedure sp_insertar_usuario
@@ -512,7 +512,7 @@ END $$
 -- 5. PROCEDIMIENTOS ADICIONALES PARA REPORTES
 -- =============================================================================
 
-DELIMITER;
+DELIMITER ;
 
 USE `parkingcontrol_db`;
 
@@ -582,6 +582,6 @@ BEGIN
 
 END$$
 
-DELIMITER;
+DELIMITER ;
 
 -- Fin del script

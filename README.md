@@ -2,115 +2,108 @@
 
 **ParkingControl** es un sistema integral de gestión de estacionamientos diseñado para optimizar el control de entradas y salidas de vehículos, la administración de espacios y la facturación automática mediante tarifas configurables.
 
-El proyecto implementa una arquitectura **Cliente-Servidor** moderna, separando la lógica de presentación (Frontend) de la lógica de negocio, la cual reside híbrida entre el Backend y la Base de Datos (mediante Procedimientos Almacenados).
+Esta versión del proyecto está completamente **Dockerizada**, lo que permite desplegar todo el entorno (Base de Datos, Backend y Frontend) con un solo comando, garantizando que funcione en cualquier máquina sin configuraciones manuales complejas.
+
+---
 
 ## 📋 Tabla de Contenidos
 
 - [Características Principales](#-características-principales)
 - [Tecnologías Utilizadas](#-tecnologías-utilizadas)
-- [Arquitectura del Proyecto](#-arquitectura-del-proyecto)
 - [Pre-requisitos](#-pre-requisitos)
-- [Instalación y Configuración](#-instalación-y-configuración)
-  - [1. Base de Datos](#1-base-de-datos)
-  - [2. Backend (API)](#2-backend-api)
-  - [3. Frontend (Presentacion)](#3-frontend-presentacion)
+- [Despliegue Rápido con Docker (Recomendado)](#-despliegue-rápido-con-docker-recomendado)
+- [Entorno de Desarrollo (Híbrido)](#-entorno-de-desarrollo-híbrido)
+- [Arquitectura del Proyecto](#-arquitectura-del-proyecto)
+- [Credenciales de Acceso](#-credenciales-de-acceso)
 
 ---
 
 ## 🚀 Características Principales
 
 * **Gestión de Espacios:** Visualización en tiempo real del estado de los espacios (Libre, Ocupado, Reservado).
-* **Control de Tickets:** Emisión de tickets de entrada con códigos únicos y cálculo automático de los montos al momento de la salida.
-* **Sistema de Tarifas:** Tarifas configurables por tipo de vehículo (Sedan, SUV, Moto, etc.).
-* **Gestión de Usuarios y Roles:** Sistema de autenticación con roles definidos (Admin, Supervisor, Operador).
-* **Seguridad:** Encriptación de contraseñas (SHA256) manejada directamente a nivel de la base de datos.
-* **Reportes:** Generación de reportes de ocupación e ingresos.
+* **Control de Tickets:** Emisión de tickets de entrada con códigos únicos y cálculo automático de montos.
+* **Sistema de Tarifas:** Configuración dinámica por tipo de vehículo (Sedan, SUV, Moto, etc.).
+* **Gestión de Usuarios:** Sistema de autenticación con roles (Admin, Supervisor, Operador).
+* **Seguridad:** Encriptación SHA256 manejada directamente por procedimientos almacenados en MySQL.
+* **Reportes:** Dashboards de ocupación e ingresos históricos.
 
 ---
 
 ## 🛠 Tecnologías Utilizadas
 
-### Frontend
-* **React:** Biblioteca principal para la interfaz de usuario.
-* **Vite:** Empaquetador de módulos rápido para el entorno de desarrollo.
-* **Tailwind CSS:** Framework de estilos utilitarios.
-* **Shadcn/ui:** Componentes de interfaz reutilizables y accesibles.
-
-### Backend
-* **Node.js & Express:** Servidor REST API.
-* **MySQL2:** Driver optimizado para la conexión con la base de datos.
-* **Nodemon:** Utilidad para el desarrollo ágil (hot-reload).
-
-### Base de Datos
-* **MySQL:** Motor de base de datos relacional.
-* **Stored Procedures:** Lógica de negocio encapsulada en la BD para operaciones críticas (Pagos, Reservas, Auth).
-
----
-
-## 🏗 Arquitectura del Proyecto
-
-El sistema prioriza la integridad de datos delegando operaciones transaccionales complejas a la base de datos:
-
-1.  **Frontend:** Consume la API REST y gestiona el estado de la UI.
-2.  **Backend (Node/Express):** Actúa como middleware, recibiendo peticiones, validando datos básicos y ejecutando `CALL sp_nombre_procedimiento` hacia MySQL.
-3.  **Database:** Ejecuta la lógica de negocio (cálculos, bloqueos, actualizaciones en cascada) asegurando consistencia ACID.
+* **Frontend:** React + Vite, Tailwind CSS, Shadcn/ui.
+* **Backend:** Node.js + Express.
+* **Base de Datos:** MySQL 8.0 (con Stored Procedures para lógica transaccional).
+* **Infraestructura:** Docker & Docker Compose.
 
 ---
 
 ## 📋 Pre-requisitos
 
-Antes de comenzar, asegúrate de tener instalado:
+Para correr este proyecto solo necesitas tener instalado:
 
-* [Node.js](https://nodejs.org/) (v18 o superior recomendado)
-* [MySQL Server](https://dev.mysql.com/downloads/installer/) (v8.0 o superior)
-* [Git](https://git-scm.com/)
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/Mac) o Docker Engine + Compose (Linux).
+* [Git](https://git-scm.com/) (para clonar el repositorio).
 
 ---
 
-## ⚙️ Instalación y Configuración
+## 🐳 Despliegue Rápido con Docker (Recomendado)
 
-Sigue estos pasos en orden para levantar el proyecto localmente.
+Sigue estos pasos para levantar el proyecto completo en menos de 2 minutos:
 
-### 1. Base de Datos
+1. **Clonar el repositorio:**
+   ```bash
+   git clone <url-del-repositorio>
+   cd ParkingControl
+   ```
 
-1.  Accede a tu gestor de base de datos (ej. MySQL Workbench).
-2.  Ejecuta el script de estructura y datos iniciales:
-    * Archivo: `database/parkingcontrol_db.sql`
-3.  Ejecuta el script de lógica de negocio (Procedimientos y Funciones):
-    * Archivo: `database/procesosyfunciones_parkingcontrol.sql`
+2. **Levantar los servicios:**
+   ```bash
+   docker-compose up -d --build
+   ```
 
-### 2. Backend (API)
+3. **¡Listo! Accede desde tu navegador:**
+   * **Frontend:** [http://localhost:3000](http://localhost:3000)
+   * **Backend API:** [http://localhost:8800](http://localhost:8800)
 
-Navega a la carpeta del servidor e instala las dependencias:
+*Nota: La base de datos se inicializa automáticamente con tablas, funciones y datos de prueba al primer inicio.*
 
-```bash
-cd backend
-npm install
-```
-Configura la conexión a la base de datos en src/database/connection.js 
-(o crea un archivo .env basado en la configuración):
-```
-// Ejemplo de configuración esperada en connection.js
-export const db = mysql.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: 'tu_password',
-    database: 'parkingcontrol_db'
-});
-```
-Inicia el servidor (correrá en el puerto 8800 por defecto):
-```bash
-npm start
-# O para modo desarrollo
-npm run dev
-```
-### 3. Frontend (Presentacion)
-En una nueva terminal, navega a la carpeta del cliente:
-```
-cd frontend
-npm install
-```
-Inicia la aplicación (correrá usualmente en el puerto 5173):
-```
-npm run dev
-```
+---
+
+## 💻 Entorno de Desarrollo (Híbrido)
+
+Si eres desarrollador y quieres modificar el código con **Hot-Reload** instantáneo, te recomendamos este flujo:
+
+1. **Mantén el motor corriendo en Docker** (solo BD y API):
+   ```bash
+   docker-compose up -d db backend
+   ```
+
+2. **Corre el Frontend localmente:**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   *Acceso local: [http://localhost:5173](http://localhost:5173)*
+
+---
+
+## 🏗 Arquitectura del Proyecto
+
+El sistema utiliza una arquitectura **API-First** con delegación de lógica a la base de datos:
+
+1. **Frontend:** Gestiona la experiencia de usuario y consume la API.
+2. **Backend:** Middleware encargado de la orquestación y seguridad.
+3. **Database:** Repositorio central que ejecuta la lógica de negocio pesada (cálculos de tiempo, validación de espacios) mediante **Procedimientos Almacenados**.
+
+---
+
+## 🔑 Credenciales de Acceso
+
+El sistema viene pre-poblado con un usuario administrador:
+* **Usuario:** `admin`
+* **Contraseña:** `admin`
+
+---
+⭐ *Desarrollado para la gestión eficiente de estacionamientos modernos.*

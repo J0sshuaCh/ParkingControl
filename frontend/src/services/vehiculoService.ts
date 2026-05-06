@@ -1,7 +1,8 @@
 import axios from "axios";
 
 // Asegúrate de que este puerto coincida con tu backend (.env o index.js)
-const API_URL = "http://localhost:8800/api/vehiculos";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8800";
+const API_URL = `${BASE_URL}/api/vehiculos`;
 
 /* --- INTERFACES DE TIPADO (Para mejor ayuda en el editor) --- */
 

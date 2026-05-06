@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:8800/api/tickets";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8800";
+const API_URL = `${BASE_URL}/api/tickets`;
 
 export interface Ticket {
     id_ticket: number;

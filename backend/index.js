@@ -16,12 +16,13 @@ app.get("/", (req, res) => {
   res.send("Backend funcionando!");
 });
 
-app.listen(8800, () => {
-  console.log("Backend conectado en el puerto 8800");
+const PORT = process.env.PORT || 8800;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Backend conectado en el puerto ${PORT}`);
 });
 
 app.use(cors({
-  origin: "http://localhost:5173",  // configurar tu ruta de frontend
+  origin: ["http://localhost", "http://localhost:80", "http://localhost:3000", "http://localhost:5173", "http://frontend"],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }))

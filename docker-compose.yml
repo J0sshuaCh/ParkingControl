@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: parkingcontrol_db
+    environment:
+      MYSQL_ROOT_PASSWORD: Jnico14112004
+      MYSQL_DATABASE: parkingcontrol_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/parkingcontrol_db.sql:/docker-entrypoint-initdb.d/1-parkingcontrol_db.sql
+      - ./database/procesosyfunciones_parkingcontrol.sql:/docker-entrypoint-initdb.d/2-procesosyfunciones.sql
+      - ./database/insercióntickets.sql:/docker-entrypoint-initdb.d/3-insercióntickets.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: parkingcontrol_backend
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASS=Jnico14112004
+      - DB_NAME=parkingcontrol_db
+      - DB_PORT=3306
+      - JWT_SECRET=unaclavesecretamuydificildeadivinar
+      - PORT=8800
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8800:8800"
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: parkingcontrol_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
