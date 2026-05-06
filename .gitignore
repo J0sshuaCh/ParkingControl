@@ -1,1 +1,13 @@
-backend/.env
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+
+# Carpeta de VS Code e IntelliJ
+.vscode/
+.idea/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
