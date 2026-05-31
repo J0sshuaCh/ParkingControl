@@ -12,20 +12,45 @@ const cors = require("cors");
 const app = express();
 app.use(express.json());
 
+const allowedOrigins = [
+  "http://localhost",
+  "http://localhost:80",
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://frontend",
+  process.env.CORS_ORIGIN,
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+const allowRailwayDomains = process.env.NODE_ENV !== "production" || process.env.ALLOW_RAILWAY_DOMAINS === "true";
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) ||
+        origin.endsWith('.brs.devtunnels.ms') ||
+        origin.endsWith('.vercel.app') ||
+        (allowRailwayDomains && origin.endsWith('.up.railway.app'))) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+
 app.get("/", (req, res) => {
   res.send("Backend funcionando!");
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
 });
 
 const PORT = process.env.PORT || 8800;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend conectado en el puerto ${PORT}`);
 });
-
-app.use(cors({
-  origin: ["http://localhost", "http://localhost:80", "http://localhost:3000", "http://localhost:5173", "http://frontend"],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
-}))
 
 // RUTAS
 app.use("/api/usuarios", usuariosRoutes);

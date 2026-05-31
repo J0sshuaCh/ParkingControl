@@ -6,6 +6,9 @@ import { generarReporte } from '@/services/reportesService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Loader2, DollarSign, Car, Clock, Calendar, BarChart3, Search, Download, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
+
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8800";
+
 // --- INTERFACES ---
 interface PaidTicket {
     id_ticket: number;
@@ -44,7 +47,7 @@ export function ReportsModule() {
             setReportData(data);
 
             // 2. Cargar el detalle de tickets (Tabla)
-            const res = await fetch('http://localhost:8800/api/tickets?estado=Pagado');
+            const res = await fetch(`${BASE_URL}/api/tickets?estado=Pagado`);
             if (res.ok) {
                 const tickets: PaidTicket[] = await res.json();
                 setPaidTickets(tickets);

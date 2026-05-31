@@ -21,6 +21,12 @@ DROP PROCEDURE IF EXISTS `sp_tarifa_crud`;
 
 DROP PROCEDURE IF EXISTS `sp_ticket_listar`;
 
+DROP PROCEDURE IF EXISTS `sp_ticket_editar`;
+
+DROP PROCEDURE IF EXISTS `sp_ticket_anular`;
+
+DROP PROCEDURE IF EXISTS `sp_ticket_historial_semanal`;
+
 DROP PROCEDURE IF EXISTS `sp_ticket_buscar_placa`;
 
 DROP PROCEDURE IF EXISTS `sp_ticket_pagar`;
@@ -30,6 +36,8 @@ DROP PROCEDURE IF EXISTS `sp_vehiculo_registrar_ingreso`;
 DROP PROCEDURE IF EXISTS `sp_vehiculo_listar_activos`;
 
 DROP PROCEDURE IF EXISTS `sp_insertar_usuario`;
+
+DROP PROCEDURE IF EXISTS `sp_reporte_avanzado`;
 
 DROP FUNCTION IF EXISTS `fn_verificar_contrasena`;
 
@@ -41,7 +49,7 @@ DELIMITER $$
 
 USE `parkingcontrol_db` $$
 -- function fn_verificar_contrasena
-CREATE DEFINER=`root`@`localhost` FUNCTION `fn_verificar_contrasena`(
+CREATE FUNCTION `fn_verificar_contrasena`(
     p_username VARCHAR(50),
     p_password_plano VARCHAR(255)
 ) RETURNS tinyint(1)
