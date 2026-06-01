@@ -1,122 +1,282 @@
-# ParkingControl 🚗
+# ParkingControl
 
-**ParkingControl** es un sistema integral de gestión de estacionamientos diseñado para optimizar el control de entradas y salidas de vehículos, la administración de espacios y la facturación automática mediante tarifas configurables.
+ParkingControl es una aplicacion web full-stack para la gestion operativa de estacionamientos. El sistema permite controlar entradas y salidas de vehiculos, administrar espacios, emitir tickets, configurar tarifas, gestionar usuarios y consultar reportes financieros desde una interfaz administrativa.
 
-Esta versión del proyecto está completamente **Dockerizada**, lo que permite desplegar todo el entorno (Base de Datos, Backend y Frontend) con un solo comando, garantizando que funcione en cualquier máquina sin configuraciones manuales complejas.
+El proyecto fue desarrollado como una solucion integral para centralizar la operacion diaria de un estacionamiento, reduciendo procesos manuales y manteniendo la logica transaccional principal en una base de datos MySQL mediante procedimientos almacenados.
 
----
+## Descripcion del proyecto
 
-## 📋 Tabla de Contenidos
+ParkingControl cubre el flujo completo de atencion de un estacionamiento:
 
-- [Características Principales](#-características-principales)
-- [Tecnologías Utilizadas](#-tecnologías-utilizadas)
-- [Pre-requisitos](#-pre-requisitos)
-- [Despliegue Rápido con Docker (Recomendado)](#-despliegue-rápido-con-docker-recomendado)
-- [Despliegue en Railway](#-despliegue-en-railway)
-- [Entorno de Desarrollo (Híbrido)](#-entorno-de-desarrollo-híbrido)
-- [Arquitectura del Proyecto](#-arquitectura-del-proyecto)
-- [Credenciales de Acceso](#-credenciales-de-acceso)
+1. Un usuario autorizado inicia sesion en el sistema.
+2. El dashboard muestra indicadores operativos y financieros.
+3. El modulo de espacios permite visualizar disponibilidad, ocupacion y reservas.
+4. Al ingresar un vehiculo, se registra su placa, tipo y espacio asignado.
+5. El sistema emite un ticket de entrada asociado al vehiculo, usuario, tarifa y espacio.
+6. Al finalizar la permanencia, se calcula el monto correspondiente y se registra el pago.
+7. Los reportes permiten consultar ingresos, historial de tickets y datos utiles para la administracion.
 
----
+La aplicacion esta pensada como una plataforma administrativa interna, con enfoque en claridad operativa, persistencia relacional y separacion de responsabilidades entre frontend, backend y base de datos.
 
-## 🚀 Características Principales
+## Caracteristicas principales
 
-* **Gestión de Espacios:** Visualización en tiempo real del estado de los espacios (Libre, Ocupado, Reservado).
-* **Control de Tickets:** Emisión de tickets de entrada con códigos únicos y cálculo automático de montos.
-* **Sistema de Tarifas:** Configuración dinámica por tipo de vehículo (Sedan, SUV, Moto, etc.).
-* **Gestión de Usuarios:** Sistema de autenticación con roles (Admin, Supervisor, Operador).
-* **Seguridad:** Encriptación SHA256 manejada directamente por procedimientos almacenados en MySQL.
-* **Reportes:** Dashboards de ocupación e ingresos históricos.
+- Autenticacion de usuarios con roles administrativos.
+- Mapa de espacios con estados `libre`, `ocupado` y `reservado`.
+- Registro de ingreso de vehiculos por placa y tipo.
+- Emision y administracion de tickets.
+- Calculo de pagos segun tarifas configurables.
+- Gestion de tarifas por tipo de vehiculo.
+- Gestion de usuarios del sistema.
+- Dashboard con resumen de ocupacion e ingresos.
+- Reportes financieros e historial de operaciones.
+- Base de datos MySQL con funciones y procedimientos almacenados.
+- Entorno local reproducible con Docker Compose.
 
----
+## Arquitectura
 
-## 🛠 Tecnologías Utilizadas
+El proyecto esta organizado en tres capas principales:
 
-* **Frontend:** React + Vite, Tailwind CSS, Shadcn/ui.
-* **Backend:** Node.js + Express.
-* **Base de Datos:** MySQL 8.0 (con Stored Procedures para lógica transaccional).
-* **Infraestructura:** Docker & Docker Compose.
+- **Frontend:** aplicacion React construida con Vite. Consume la API REST del backend y presenta la interfaz administrativa.
+- **Backend:** API desarrollada con Node.js y Express. Expone endpoints REST y coordina las operaciones contra MySQL.
+- **Base de datos:** MySQL 8.0. Contiene tablas, relaciones, funciones y procedimientos almacenados para operaciones criticas del negocio.
 
----
+Flujo general:
 
-## 📋 Pre-requisitos
+```text
+Frontend React -> API REST Express -> MySQL 8.0
+```
 
-Para correr este proyecto solo necesitas tener instalado:
+## Stack tecnologico
 
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/Mac) o Docker Engine + Compose (Linux).
-* [Git](https://git-scm.com/) (para clonar el repositorio).
+**Frontend**
 
----
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
+- Shadcn/ui
+- Axios
+- Recharts
+- XLSX
 
-## 🐳 Despliegue Rápido con Docker (Recomendado)
+**Backend**
 
-Sigue estos pasos para levantar el proyecto completo en menos de 2 minutos:
+- Node.js
+- Express
+- MySQL2
+- Dotenv
+- CORS
 
-1. **Clonar el repositorio:**
-   ```bash
-   git clone <url-del-repositorio>
-   cd ParkingControl
-   ```
+**Base de datos**
 
-2. **Levantar los servicios:**
-   ```bash
-   docker-compose up -d --build
-   ```
+- MySQL 8.0
+- Stored Procedures
+- SQL Functions
 
-3. **¡Listo! Accede desde tu navegador:**
-   * **Frontend:** [http://localhost:3000](http://localhost:3000)
-   * **Backend API:** [http://localhost:8800](http://localhost:8800)
+**Infraestructura y despliegue**
 
-*Nota: La base de datos se inicializa automáticamente con tablas, funciones y datos de prueba al primer inicio.*
+- Docker
+- Docker Compose
+- Railway para backend y base de datos
+- Vercel u otro hosting estatico para frontend
 
----
+## Estructura del proyecto
 
-## 🚆 Despliegue en Railway
+```text
+ParkingControl/
+├── backend/                 # API REST con Node.js y Express
+├── frontend/                # Aplicacion React + Vite
+├── database/                # Scripts SQL de estructura, funciones y datos
+├── docker-compose.yml       # Entorno local completo
+└── README.md
+```
 
-Railway puede alojar el backend y la base de datos MySQL. El frontend puede desplegarse aparte, por ejemplo en Vercel, usando la URL publica del backend como `VITE_API_URL`.
+## Requisitos previos
 
-### 1. Crear la base de datos MySQL
+Para ejecutar el proyecto localmente se recomienda tener instalado:
 
-1. En Railway, crea un nuevo proyecto.
-2. Agrega un servicio de base de datos **MySQL**.
-3. Railway generara variables como:
-   ```env
-   MYSQLHOST=
-   MYSQLUSER=
-   MYSQLPASSWORD=
-   MYSQLDATABASE=
-   MYSQLPORT=
-   ```
+- Git
+- Docker Desktop o Docker Engine con Docker Compose
 
-### 2. Importar la base de datos
+Para ejecutar frontend y backend manualmente tambien se requiere:
 
-Railway no ejecuta automaticamente los scripts de `database/` como Docker Compose. Los SQL del proyecto crean y usan el esquema `parkingcontrol_db`, asi que importa estos archivos en orden:
+- Node.js 20 o superior
+- npm
+- MySQL 8.0
+
+## Ejecucion local con Docker
+
+Esta es la forma recomendada para levantar el proyecto completo en local. Docker Compose crea los servicios de base de datos, backend y frontend, e inicializa MySQL con los scripts SQL del proyecto.
+
+1. Clonar el repositorio:
+
+```bash
+git clone <url-del-repositorio>
+cd ParkingControl
+```
+
+2. Levantar los contenedores:
+
+```bash
+docker-compose up -d --build
+```
+
+3. Acceder a la aplicacion:
+
+```text
+Frontend: http://localhost:3000
+Backend:  http://localhost:8800
+Health:   http://localhost:8800/health
+```
+
+La base de datos se inicializa automaticamente al crear el contenedor por primera vez. Si ya existe un volumen previo de MySQL, Docker no volvera a ejecutar los scripts de inicializacion.
+
+## Credenciales de prueba
+
+El entorno local incluye un usuario administrador inicial:
+
+```text
+Usuario: admin
+Contrasena: admin
+```
+
+Estas credenciales son solo para desarrollo y demostracion.
+
+## Modo de desarrollo
+
+Tambien es posible trabajar con la base de datos y el backend en Docker, mientras el frontend se ejecuta localmente con Vite para tener recarga rapida.
+
+1. Levantar base de datos y backend:
+
+```bash
+docker-compose up -d db backend
+```
+
+2. Entrar al frontend:
+
+```bash
+cd frontend
+```
+
+3. Instalar dependencias:
+
+```bash
+npm install
+```
+
+4. Crear archivo de entorno:
+
+```bash
+cp .env.example .env
+```
+
+5. Verificar que `frontend/.env` apunte al backend local:
+
+```env
+VITE_API_URL=http://localhost:8800
+```
+
+6. Ejecutar el frontend:
+
+```bash
+npm run dev
+```
+
+7. Abrir en el navegador:
+
+```text
+http://localhost:5173
+```
+
+## Variables de entorno
+
+### Backend
+
+El backend usa variables de entorno para conectarse a MySQL, configurar CORS y definir el puerto de ejecucion.
+
+Archivo de referencia:
+
+```text
+backend/.env.example
+```
+
+Variables principales:
+
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=tu_contrasena
+DB_NAME=parkingcontrol_db
+DB_PORT=3306
+JWT_SECRET=una_clave_larga_y_segura
+PORT=8800
+CORS_ORIGIN=http://localhost:5173
+```
+
+Para Railway/MySQL administrado, el backend tambien soporta:
+
+```env
+MYSQLHOST=
+MYSQLUSER=
+MYSQLPASSWORD=
+MYSQLDATABASE=
+MYSQLPORT=
+```
+
+Si se importa la base con el esquema incluido en este repositorio, se debe mantener:
+
+```env
+DB_NAME=parkingcontrol_db
+```
+
+### Frontend
+
+Archivo de referencia:
+
+```text
+frontend/.env.example
+```
+
+Variable principal:
+
+```env
+VITE_API_URL=http://localhost:8800
+```
+
+## Base de datos
+
+Los scripts SQL se encuentran en la carpeta `database/`.
+
+Archivos principales:
+
+- `parkingcontrol_db.sql`: crea el esquema, tablas y datos iniciales.
+- `procesosyfunciones_parkingcontrol.sql`: crea funciones y procedimientos almacenados.
+- `insercióntickets.sql`: agrega datos de prueba para reportes e historial.
+- `README-railway.md`: instrucciones especificas para importar MySQL en Railway.
+
+Orden recomendado de importacion manual:
 
 ```bash
 database/parkingcontrol_db.sql
 database/procesosyfunciones_parkingcontrol.sql
 ```
 
-`database/insercióntickets.sql` contiene datos de tickets de prueba; importalo solo si quieres poblar historial inicial para reportes y dashboards.
+El archivo `insercióntickets.sql` es opcional y se recomienda solo para poblar datos de demostracion.
 
-No importes `database/llenarespacios.sql` en produccion. Es una utilidad de pruebas que ocupa espacios temporalmente y luego incluye instrucciones de limpieza.
+## Despliegue
 
-### 3. Crear el servicio backend
+El proyecto esta preparado para desplegarse separando responsabilidades:
 
-1. Crea un servicio desde este repositorio.
-2. Configura el **Root Directory** como:
-   ```text
-   backend
-   ```
-3. Usa el comando de inicio:
-   ```bash
-   npm start
-   ```
-4. El backend escuchara automaticamente en el puerto asignado por Railway mediante `PORT`.
+- Backend y MySQL en Railway.
+- Frontend en Vercel, Railway u otro servicio compatible con aplicaciones Vite.
 
-### 4. Variables del backend
+Para el backend en Railway:
 
-Configura estas variables en el servicio backend:
+- Root Directory: `backend`
+- Start Command: `npm start`
+- Healthcheck recomendado: `/health`
+
+Variables minimas del backend en produccion:
 
 ```env
 MYSQLHOST=<valor-del-servicio-mysql>
@@ -125,91 +285,36 @@ MYSQLPASSWORD=<valor-del-servicio-mysql>
 MYSQLPORT=<valor-del-servicio-mysql>
 DB_NAME=parkingcontrol_db
 JWT_SECRET=una_clave_larga_y_segura
-CORS_ORIGIN=https://tu-frontend.vercel.app
+CORS_ORIGIN=https://url-del-frontend
 ```
 
-`DB_NAME=parkingcontrol_db` es importante porque el esquema importado se crea con ese nombre, aunque Railway tambien exponga `MYSQLDATABASE` con otro valor.
-
-Si tambien despliegas el frontend en Railway y quieres aceptar dominios `*.up.railway.app` como origen en produccion, agrega:
+Variable del frontend en produccion:
 
 ```env
-ALLOW_RAILWAY_DOMAINS=true
+VITE_API_URL=https://url-del-backend
 ```
 
-### 5. Verificar despliegue
+## Scripts utiles
 
-Cuando Railway termine el deploy, prueba:
+### Backend
 
-```text
-https://tu-backend.up.railway.app/health
+```bash
+cd backend
+npm install
+npm run dev
+npm start
 ```
 
-Debe responder:
+### Frontend
 
-```json
-{ "status": "ok" }
+```bash
+cd frontend
+npm install
+npm run dev
+npm run build
+npm run preview
 ```
 
-### 6. Conectar el frontend
+## Estado del proyecto
 
-En el frontend configura:
-
-```env
-VITE_API_URL=https://tu-backend.up.railway.app
-```
-
-### Checklist final
-
-Antes de probar la aplicacion completa en produccion, confirma:
-
-- El backend tiene **Root Directory** configurado como `backend`.
-- El comando de inicio del backend es `npm start`.
-- El servicio MySQL ya tiene importados `parkingcontrol_db.sql` y `procesosyfunciones_parkingcontrol.sql`.
-- El backend tiene `DB_NAME=parkingcontrol_db`.
-- El backend tiene `CORS_ORIGIN` con la URL exacta del frontend.
-- El frontend tiene `VITE_API_URL` con la URL publica del backend.
-- `https://tu-backend.up.railway.app/health` responde `{ "status": "ok" }`.
-- El login con usuario `admin` y contraseña `admin` funciona despues de importar la base de datos.
-
----
-
-## 💻 Entorno de Desarrollo (Híbrido)
-
-Si eres desarrollador y quieres modificar el código con **Hot-Reload** instantáneo, te recomendamos este flujo:
-
-1. **Mantén el motor corriendo en Docker** (solo BD y API):
-   ```bash
-   docker-compose up -d db backend
-   ```
-
-2. **Corre el Frontend localmente:**
-   ```bash
-   cd frontend
-   cp .env.example .env  # O copiar manualmente el archivo
-   npm install
-   npm run dev
-   ```
-   *Acceso local: [http://localhost:5173](http://localhost:5173)*
-
-> **Nota sobre Seguridad:** Los archivos `.env` reales están ignorados por Git. Si clonas el proyecto para desarrollo manual, asegúrate de crear tu propio `.env` basándote en los archivos `.env.example` de cada carpeta. Si usas **Docker**, no es necesario ya que las variables están pre-configuradas en el `docker-compose.yml`.
-
----
-
-## 🏗 Arquitectura del Proyecto
-
-El sistema utiliza una arquitectura **API-First** con delegación de lógica a la base de datos:
-
-1. **Frontend:** Gestiona la experiencia de usuario y consume la API.
-2. **Backend:** Middleware encargado de la orquestación y seguridad.
-3. **Database:** Repositorio central que ejecuta la lógica de negocio pesada (cálculos de tiempo, validación de espacios) mediante **Procedimientos Almacenados**.
-
----
-
-## 🔑 Credenciales de Acceso
-
-El sistema viene pre-poblado con un usuario administrador:
-* **Usuario:** `admin`
-* **Contraseña:** `admin`
-
----
-⭐ *Desarrollado para la gestión eficiente de estacionamientos modernos.*
+ParkingControl es un proyecto full-stack funcional orientado a portfolio. Incluye una interfaz administrativa, API REST, persistencia relacional, procedimientos almacenados, entorno local dockerizado y configuracion preparada para despliegue cloud.
