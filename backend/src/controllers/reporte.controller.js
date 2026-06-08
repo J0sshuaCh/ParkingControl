@@ -1,14 +1,13 @@
 const { ReporteModel } = require("../models/reporte.model.js");
+const { AuditEvent } = require('../utils/audit');
 
 const generarReporte = async (req, res) => {
-    // Recibimos parámetros extra: id_usuario_filtro y formato
-    const { fecha_inicio, fecha_fin, id_usuario_filtro, id_usuario_generador, formato } = req.body;
+    const { fecha_inicio, fecha_fin, id_usuario_filtro, formato } = req.body;
     try {
         if (!fecha_inicio || !fecha_fin) {
             return res.status(400).json({ message: "Se requieren fecha de inicio y fin." });
         }
-        // Asumimos que si no viene generador, es el sistema (o podrías sacar esto del token JWT)
-        const generador = id_usuario_generador || 1;
+        const generador = req.user.id_usuario;
         const data = await ReporteModel.generarReporteAvanzado(
             fecha_inicio,
             fecha_fin,
@@ -16,12 +15,19 @@ const generarReporte = async (req, res) => {
             generador,
             formato
         );
+
+        if (req.audit) req.audit.log(AuditEvent.REPORT_GENERATED, {
+            desde: fecha_inicio,
+            hasta: fecha_fin,
+            formato: formato || 'Excel'
+        });
+
         res.json({
             message: "Reporte generado y guardado exitosamente.",
             data: data
         });
     } catch (error) {
-        console.error(error);
+        console.error(error.message);
         res.status(500).json({ message: "Error al generar el reporte" });
     }
 };
@@ -31,6 +37,7 @@ const obtenerHistorial = async (req, res) => {
         const historial = await ReporteModel.listarHistorialReportes();
         res.json(historial);
     } catch (error) {
+        console.error(error.message);
         res.status(500).json({ message: "Error al obtener historial" });
     }
 };

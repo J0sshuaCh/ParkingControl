@@ -1,21 +1,27 @@
 const TarifaModel = require('../models/tarifa.model.js');
+const { AuditEvent } = require('../utils/audit');
 
 const getTarifas = async (req, res) => {
     try {
         const tarifas = await TarifaModel.getAll();
         res.json(tarifas);
     } catch (error) {
-        res.status(500).json({ message: "Error al obtener tarifas", error: error.message });
+        res.status(500).json({ message: "Error al obtener tarifas" });
     }
 };
 
 const createTarifa = async (req, res) => {
     try {
-        // Delegamos la lógica al modelo
         const nuevaTarifa = await TarifaModel.create(req.body);
+
+        if (req.audit) req.audit.log(AuditEvent.TARIFA_CREATED, {
+            tipo: nuevaTarifa.tipo_vehiculo,
+            precio: nuevaTarifa.precio_hora
+        });
+
         res.status(201).json({ message: "Tarifa creada exitosamente", tarifa: nuevaTarifa });
     } catch (error) {
-        res.status(500).json({ message: "Error al crear tarifa", error: error.message });
+        res.status(500).json({ message: "Error al crear tarifa" });
     }
 };
 
@@ -26,9 +32,12 @@ const updateTarifa = async (req, res) => {
         if (!actualizado) {
             return res.status(404).json({ message: "Tarifa no encontrada" });
         }
+
+        if (req.audit) req.audit.log(AuditEvent.TARIFA_UPDATED, { tarifa_id: Number(id), ...req.body });
+
         res.json({ message: "Tarifa actualizada correctamente" });
     } catch (error) {
-        res.status(500).json({ message: "Error al actualizar tarifa", error: error.message });
+        res.status(500).json({ message: "Error al actualizar tarifa" });
     }
 };
 
@@ -39,9 +48,12 @@ const deleteTarifa = async (req, res) => {
         if (!eliminado) {
             return res.status(404).json({ message: "Tarifa no encontrada" });
         }
-        res.sendStatus(204); // 204 No Content es estándar para deletes exitosos
+
+        if (req.audit) req.audit.log(AuditEvent.TARIFA_DELETED, { tarifa_id: Number(id) });
+
+        res.sendStatus(204);
     } catch (error) {
-        res.status(500).json({ message: "Error al eliminar tarifa", error: error.message });
+        res.status(500).json({ message: "Error al eliminar tarifa" });
     }
 };
 

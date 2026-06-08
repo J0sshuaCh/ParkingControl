@@ -1,4 +1,5 @@
 const VehiculoModel = require("../models/vehiculo.model.js");
+const { AuditEvent } = require('../utils/audit');
 
 const VehiculoController = {
   // GET: Listar espacios libres
@@ -52,18 +53,26 @@ const VehiculoController = {
         espacioSeleccionado = espacios[0];
       }
 
-      // 4. Guardar en DB
+      // 4. Guardar en DB (usar ID del usuario autenticado)
       const resultado = await VehiculoModel.registrarIngreso(
         placa.toUpperCase(),
         tipo_vehiculo,
         espacioSeleccionado.id_espacio,
-        tarifa.id_tarifa
+        tarifa.id_tarifa,
+        req.user.id_usuario  // Usuario autenticado
       );
 
       res.status(201).json({
         message: "Entrada registrada correctamente",
         ticket: resultado.codigo_ticket,
         espacio: espacioSeleccionado.codigo
+      });
+
+      if (req.audit) req.audit.log(AuditEvent.VEHICLE_ENTRY, {
+        placa: placa.toUpperCase(),
+        tipo: tipo_vehiculo,
+        espacio: espacioSeleccionado.codigo,
+        ticket: resultado.codigo_ticket
       });
 
     } catch (error) {
