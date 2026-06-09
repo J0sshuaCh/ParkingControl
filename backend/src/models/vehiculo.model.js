@@ -16,10 +16,9 @@ const VehiculoModel = {
     },
 
     // 3. Registrar Ingreso
-    registrarIngreso: async (placa, tipoVehiculo, idEspacio, idTarifa) => {
+    registrarIngreso: async (placa, tipoVehiculo, idEspacio, idTarifa, idUsuario) => {
         try {
             const codigoTicket = `TK-${Date.now().toString().slice(-6)}`;
-            const idUsuario = 1;
             const sql = "CALL sp_vehiculo_registrar_ingreso(?, ?, ?, ?, ?, ?)";
             const params = [placa, tipoVehiculo, idEspacio, idTarifa, codigoTicket, idUsuario];
             const [result] = await db.query(sql, params);

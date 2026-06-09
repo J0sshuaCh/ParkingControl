@@ -1,69 +1,80 @@
-const { db } = require('../database/connection.cjs'); 
+const { db } = require('../database/connection.cjs');
+const bcrypt = require('bcrypt');
+
+const SALT_ROUNDS = 12;
 
 // LOGIN
 async function login(username, password) {
     try {
-        // 1. Verificamos contraseña (función SQL existente)
-        const sqlCheck = "SELECT fn_verificar_contrasena(?, ?) AS es_valido";
-        const [checkRows] = await db.query(sqlCheck, [username, password]);
-
-        if (checkRows[0].es_valido === 0) {
-            return [];
-        }
-
-        // 2. Si es válido, traemos los datos usando el NUEVO SP
+        // Obtener datos del usuario
         const sqlUser = "CALL sp_usuario_obtener_por_username(?)";
         const [result] = await db.query(sqlUser, [username]);
 
-        // Retornamos result[0]
-        return result[0];
+        if (!result[0] || result[0].length === 0) {
+            return [];
+        }
 
+        const user = result[0][0];
+
+        // Verificar contraseña con bcrypt
+        const isValid = await bcrypt.compare(password, user.password);
+
+        if (!isValid) {
+            return [];
+        }
+
+        return result[0];
     } catch (error) {
-        console.error("Error en UsuarioModel.login:", error);
+        console.error("Error en UsuarioModel.login:", error.message);
         throw error;
     }
 }
 
 // REGISTRO
-async function register(username, password, email, id_rol, fecha_creacion, nombre_completo) {
+async function register(username, password, email, id_rol, nombre_completo) {
     try {
+        // Hashear contraseña con bcrypt
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
         const sql = "CALL sp_insertar_usuario(?, ?, ?, ?, ?)";
 
         const [result] = await db.query(sql, [
             username,
-            password,
+            hashedPassword,  // Enviar hash bcrypt (el SP no re-hashea)
             email,
             nombre_completo,
             id_rol
         ]);
 
         return result[0][0];
-
     } catch (error) {
-        console.error("Error en UsuarioModel.register:", error);
+        console.error("Error en UsuarioModel.register:", error.message);
         throw error;
     }
 }
 
-// LISTAR: Adaptado a SP
+// LISTAR
 async function listarUsuario() {
     try {
         const sql = "CALL sp_usuario_listar()";
         const [rows] = await db.query(sql);
         return rows[0];
     } catch (error) {
-        console.error("Error en UsuarioModel.listarUsuario:", error);
+        console.error("Error en UsuarioModel.listarUsuario:", error.message);
         throw error;
     }
 }
 
-// EDITAR: Adaptado a SP
+// EDITAR
 async function editarUsuario(id_usuario, datos) {
     try {
-        const sql = "CALL sp_usuario_editar(?, ?, ?, ?, ?)";
+        // Si se envía password, hashearlo con bcrypt
+        if (datos.password) {
+            datos.password = await bcrypt.hash(datos.password, SALT_ROUNDS);
+        }
 
-        // Desestructuramos para garantizar el orden de los parámetros del SP
-        const { nombre_completo, email, estado, id_rol } = datos;
+        const sql = "CALL sp_usuario_editar(?, ?, ?, ?, ?)";
+        const { nombre_completo, email, estado, id_rol, password } = datos;
 
         const [result] = await db.query(sql, [
             id_usuario,
@@ -74,26 +85,23 @@ async function editarUsuario(id_usuario, datos) {
         ]);
 
         return result;
-
     } catch (error) {
-        console.error("Error en UsuarioModel.editarUsuario:", error);
+        console.error("Error en UsuarioModel.editarUsuario:", error.message);
         throw error;
     }
 }
 
-// ELIMINAR: Adaptado a SP
+// ELIMINAR
 async function eliminarUsuario(id_usuario) {
     try {
         const sql = "CALL sp_usuario_eliminar(?)";
         const [result] = await db.query(sql, [id_usuario]);
         return result;
-
     } catch (error) {
-        console.error("Error en UsuarioModel.eliminarUsuario:", error);
+        console.error("Error en UsuarioModel.eliminarUsuario:", error.message);
         throw error;
     }
 }
-
 
 module.exports = {
     UsuarioModel: {
