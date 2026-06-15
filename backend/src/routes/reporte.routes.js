@@ -1,9 +1,13 @@
 const express = require("express");
 const { generarReporte, obtenerHistorial } = require("../controllers/reporte.controller.js");
+const { authMiddleware, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post("/generar", generarReporte); // POST: Crea, calcula y guarda
-router.get("/historial", obtenerHistorial); // GET: Ve reportes pasados
+router.use(authMiddleware);
+router.use(requireRole('administrador', 'supervisor'));
+
+router.post("/generar", generarReporte);
+router.get("/historial", obtenerHistorial);
 
 module.exports = router;
