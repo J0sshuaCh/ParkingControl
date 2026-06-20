@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS `rol` (
 CREATE TABLE IF NOT EXISTS `usuario` (
     `id_usuario` INT NOT NULL AUTO_INCREMENT,
     `username` VARCHAR(50) NOT NULL,
-    `password` VARCHAR(255) NOT NULL, -- Aquí se guardará el SHA256
+    `password` VARCHAR(255) NOT NULL, -- Hash bcrypt (12 rounds)
     `nombre_completo` VARCHAR(100) NOT NULL,
     `email` VARCHAR(100) NULL DEFAULT NULL,
     `estado` ENUM('Activo', 'Ausente') NULL DEFAULT 'Activo',
@@ -204,7 +204,7 @@ VALUES (
         'operador',
         'Encargado de registro y cobro'
     );
--- 2. Insertar usuario 'admin'
+-- 2. Insertar usuario 'admin' con contraseña bcrypt (password: 'admin')
 INSERT IGNORE INTO
     usuario (
         id_usuario,
@@ -219,19 +219,13 @@ INSERT IGNORE INTO
 VALUES (
         1,
         'admin',
-        'admin',
+        '$2b$12$0b85nbl2dq.Jfoyf9G5dturXu0xslqMe1Mot0v1AjRkm75mcLHlda',
         'Administrador',
         'admin@correo.com',
         'Activo',
         NOW(),
         1
     );
-
--- Esto asegura que la contraseña 'admin' esté encriptada con SHA256
-UPDATE usuario
-SET password = SHA2('admin', 256)
-WHERE
-    username = 'admin';
 
 -- 3. Insertar Tarifas Base
 INSERT INTO

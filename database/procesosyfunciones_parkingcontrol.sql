@@ -42,38 +42,25 @@ DROP PROCEDURE IF EXISTS `sp_reporte_avanzado`;
 DROP FUNCTION IF EXISTS `fn_verificar_contrasena`;
 
 -- =============================================================================
--- 1. SEGURIDAD Y USUARIOS (Encriptación en Base de Datos)
+-- 1. SEGURIDAD Y USUARIOS (Encriptación con bcrypt desde backend)
+-- =============================================================================
+-- NOTA: El hashing de contraseñas ahora se realiza en el backend con bcrypt.
+-- La función fn_verificar_contrasena queda obsoleta; la verificación se hace
+-- en Node.js usando bcrypt.compare().
 -- =============================================================================
 
 DELIMITER $$
 
 USE `parkingcontrol_db` $$
--- function fn_verificar_contrasena
+-- function fn_verificar_contrasena (DEPRECADA - Se mantiene por compatibilidad)
 CREATE FUNCTION `fn_verificar_contrasena`(
     p_username VARCHAR(50),
     p_password_plano VARCHAR(255)
 ) RETURNS tinyint(1)
     READS SQL DATA
 BEGIN
-DECLARE v_password_hash VARCHAR(255);
-    
-    -- Obtener la contraseña encriptada almacenada
-    SELECT `password` INTO v_password_hash 
-    FROM `usuario` 
-    WHERE `username` = p_username 
-    LIMIT 1;
-    
-    -- Si no existe el usuario, retorna falso
-    IF v_password_hash IS NULL THEN
-        RETURN 0;
-    END IF;
-    
-    -- Compara el hash guardado con el hash calculado del input
-    IF v_password_hash = SHA2(p_password_plano, 256) THEN
-        RETURN 1; -- Coincide
-    ELSE
-        RETURN 0; -- No coincide
-    END IF;
+    -- La verificación real se hace en el backend con bcrypt.compare()
+    RETURN 0;
 END$$
 
 DELIMITER ;
@@ -86,17 +73,17 @@ DELIMITER $$
 
 CREATE PROCEDURE `sp_insertar_usuario`(
     IN p_username VARCHAR(50),
-    IN p_password VARCHAR(255),
+    IN p_password VARCHAR(255),  -- Ya viene hasheado con bcrypt desde Node.js
     IN p_email VARCHAR(100),
     IN p_nombre_completo VARCHAR(100),
     IN p_id_rol INT
 )
 BEGIN
-    -- Insertar usando SHA2 para la contraseña y 'Activo' por defecto
+    -- Insertar el hash bcrypt tal cual viene del backend
     INSERT INTO `usuario` (username, password, nombre_completo, id_rol, fecha_creacion, estado, email)
     VALUES (
         p_username, 
-        SHA2(p_password, 256), -- Encriptación nativa
+        p_password,  -- Hash bcrypt almacenado directamente
         p_nombre_completo, 
         p_id_rol, 
         NOW(), 
