@@ -2,10 +2,11 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install --production
+RUN corepack enable pnpm
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile
 
 COPY . .
 
 EXPOSE 8800
-CMD ["npm", "start"]
+CMD ["pnpm", "start"]

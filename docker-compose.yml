@@ -1,11 +1,9 @@
-version: "3.8"
-
 services:
   db:
     image: mysql:8.0
     container_name: parkingcontrol_db
     environment:
-      MYSQL_ROOT_PASSWORD: Jnico14112004
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-ChangeMeInProduction!}
       MYSQL_DATABASE: parkingcontrol_db
     ports:
       - "3307:3306"
@@ -24,13 +22,15 @@ services:
     build:
       context: ./backend
     container_name: parkingcontrol_backend
+    env_file:
+      - ./backend/.env
     environment:
       - DB_HOST=db
       - DB_USER=root
-      - DB_PASS=Jnico14112004
+      - DB_PASS=${DB_ROOT_PASSWORD:-ChangeMeInProduction!}
       - DB_NAME=parkingcontrol_db
       - DB_PORT=3306
-      - JWT_SECRET=unaclavesecretamuydificildeadivinar
+      - JWT_SECRET=${JWT_SECRET:-ChangeMeInProduction!}
       - PORT=8800
     depends_on:
       db:

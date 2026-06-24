@@ -2,8 +2,8 @@ node_modules
 dist
 dist-ssr
 npm-debug.log*
+pnpm-debug.log*
 .DS_Store
 .env
 *.md
 .git
-package-lock.json

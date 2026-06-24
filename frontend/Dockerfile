@@ -1,10 +1,11 @@
 # Etapa 1: Build con Node
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+RUN corepack enable pnpm
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
 # Etapa 2: Nginx para servir los archivos compilados
 FROM nginx:alpine
