@@ -1,6 +1,8 @@
 import React from "react";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
+import { MobileFooterNav } from "@/components/mobile-footer-nav";
+import { useIsMobile } from "@/components/ui/use-mobile";
 
 // 1. Definimos qué datos NECESITA este Layout para funcionar
 interface LayoutProps {
@@ -20,15 +22,19 @@ export function Layout({
   userName,
   onLogout
 }: LayoutProps) {
+  const isMobile = useIsMobile();
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
 
-      {/* 2. SIDEBAR DINÁMICO */}
-      <Sidebar
-        activeModule={activeModule}
-        onModuleChange={onModuleChange}
-        userRole={userRole}
-      />
+      {/* 2. SIDEBAR - Solo visible en desktop */}
+      {!isMobile && (
+        <Sidebar
+          activeModule={activeModule}
+          onModuleChange={onModuleChange}
+          userRole={userRole}
+        />
+      )}
 
       <div className="flex flex-col flex-1 h-full overflow-hidden">
         {/* 3. HEADER CONECTADO */}
@@ -37,10 +43,23 @@ export function Layout({
           onLogout={onLogout}
           onNavigate={onModuleChange}
         />
-        <main className="flex-1 overflow-auto p-6">
+        {/* 4. MAIN - Con padding inferior extra en móvil para el footer */}
+        <main 
+          key={activeModule} 
+          className={`flex-1 overflow-auto page-enter ${isMobile ? "p-4 pb-24" : "p-6"}`}
+        >
           {children}
         </main>
       </div>
+
+      {/* 5. FOOTER NAV - Solo visible en móvil */}
+      {isMobile && (
+        <MobileFooterNav
+          activeModule={activeModule}
+          onModuleChange={onModuleChange}
+          userRole={userRole}
+        />
+      )}
     </div>
   );
 }

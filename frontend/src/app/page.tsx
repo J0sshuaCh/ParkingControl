@@ -23,6 +23,9 @@ export default function Page() {
   }
 
   const handleLogout = () => {
+    // Limpiar datos de sesión
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setIsLoggedIn(false)
     setUserName("")
     setUserRole("")
