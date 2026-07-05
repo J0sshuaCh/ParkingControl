@@ -72,12 +72,17 @@ export function Login({ onLogin }: LoginProps) {
       const data = await loginRequest(username, password);
 
       // Manejo robusto de la respuesta del usuario
-      if (data && data.user) {
+      if (data && data.user && data.token) {
+        // Almacenar token JWT
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
         // Pasamos el objeto usuario completo
         onLogin(data.user);
+      } else if (data && data.user) {
+        // Compatibilidad hacia atrás (sin token)
+        onLogin(data.user);
       } else {
-        // Fallback por si acaso
-        onLogin({ nombre_completo: username, nombre_rol: 'Operador' });
+        setError("Error en la respuesta del servidor");
       }
 
     } catch (err: any) {
@@ -89,18 +94,33 @@ export function Login({ onLogin }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen w-full bg-background flex transition-colors duration-300">
+      
+      {/* Panel Izquierdo - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden items-center justify-center">
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:60px_60px]" />
+        <div className="absolute top-0 left-0 w-96 h-96 bg-primary-foreground/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary-foreground/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+        
+        <div className="relative z-10 text-center px-12 animate-in fade-in slide-in-from-left-8 duration-700">
+          <div className="w-24 h-24 bg-primary-foreground/20 backdrop-blur-sm rounded-3xl flex items-center justify-center mb-8 mx-auto shadow-2xl border border-primary-foreground/30">
+            <ParkingCircle className="w-14 h-14 text-primary-foreground" />
+          </div>
+          <h1 className="text-5xl font-bold text-primary-foreground tracking-tight mb-4">Parking Control</h1>
+          <p className="text-lg text-primary-foreground/80 font-light">
+            Sistema de Control de Estacionamientos
+          </p>
+        </div>
+      </div>
 
-      {/* Decoración de fondo */}
-      <div className="absolute inset-0 bg-grid-black/[0.02] dark:bg-grid-white/[0.02] bg-[size:60px_60px]" />
-      <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[300px] w-[300px] rounded-full bg-primary/20 opacity-30 blur-[100px]" />
-
-      <div className="w-full max-w-md animate-in fade-in zoom-in duration-500 relative z-10">
-        {/* Usamos bg-card para que cambie de color automáticamente en modo oscuro */}
-        <Card className="p-8 bg-card border-border shadow-xl backdrop-blur-sm">
-
-          <div className="flex flex-col items-center mb-8 text-center">
-            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-primary/30 transform transition-transform hover:scale-105">
+      {/* Panel Derecho - Formulario */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative">
+        <div className="absolute inset-0 bg-grid-black/[0.02] dark:bg-grid-white/[0.02] bg-[size:60px_60px]" />
+        
+        <div className="w-full max-w-md animate-in fade-in zoom-in duration-500 relative z-10">
+          {/* Logo móvil */}
+          <div className="lg:hidden flex flex-col items-center mb-8 text-center">
+            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
               <ParkingCircle className="w-10 h-10 text-primary-foreground" />
             </div>
             <h1 className="text-3xl font-bold text-foreground tracking-tight">Parking Control</h1>
@@ -109,53 +129,60 @@ export function Login({ onLogin }: LoginProps) {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground ml-1">Usuario</label>
-              <Input
-                type="text"
-                placeholder="ej. admin"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={isLoading}
-                className="bg-input border-border text-foreground placeholder:text-muted-foreground h-11 transition-all focus:ring-2 focus:ring-primary/20"
-              />
+          <Card className="p-8 bg-card border-border shadow-xl backdrop-blur-sm">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-foreground mb-2">Iniciar Sesión</h2>
+              <p className="text-sm text-muted-foreground">Ingresa tus credenciales para acceder al sistema</p>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground ml-1">Contraseña</label>
-              <PasswordInput
-                value={password}
-                onChange={setPassword}
-                disabled={isLoading}
-              />
-            </div>
-
-            {error && (
-              <div className="p-3 bg-destructive/15 border border-destructive/30 rounded-lg flex items-start gap-3 text-destructive text-sm animate-in slide-in-from-top-2">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground ml-1">Usuario</label>
+                <Input
+                  type="text"
+                  placeholder="ej. admin"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isLoading}
+                  className="bg-input border-border text-foreground placeholder:text-muted-foreground h-11 transition-all focus:ring-2 focus:ring-primary/20"
+                />
               </div>
-            )}
 
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-11 text-base font-medium shadow-md shadow-primary/20 transition-all mt-4"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Iniciando...
-                </>
-              ) : (
-                <>
-                  Ingresar <LogIn className="w-4 h-4 ml-2" />
-                </>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground ml-1">Contraseña</label>
+                <PasswordInput
+                  value={password}
+                  onChange={setPassword}
+                  disabled={isLoading}
+                />
+              </div>
+
+              {error && (
+                <div className="p-3 bg-destructive/15 border border-destructive/30 rounded-lg flex items-start gap-3 text-destructive text-sm animate-in slide-in-from-top-2">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
               )}
-            </Button>
-          </form>
-        </Card>
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-11 text-base font-medium shadow-md shadow-primary/20 transition-all mt-4"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Iniciando...
+                  </>
+                ) : (
+                  <>
+                    Ingresar <LogIn className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </form>
+          </Card>
+        </div>
       </div>
     </div>
   )
