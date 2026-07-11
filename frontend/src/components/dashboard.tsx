@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, type Dispatch, type SetStateAction } from "react"
+import { useState, useEffect, type Dispatch, type SetStateAction } from "react"
 import { Sidebar } from "./sidebar"
 import { Header } from "./header"
+import { CommandPalette } from "./command-palette"
 
 import { DashboardOverview } from "./dashboard-overview"
 import { VehicleRegistration } from "./modules/vehicle-registration"
@@ -22,6 +23,20 @@ interface DashboardProps {
 
 export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
   const [activeModule, setActiveModule] = useState("overview")
+  const [commandOpen, setCommandOpen] = useState(false)
+
+  // Keyboard shortcut for command palette (Cmd+K or Ctrl+K)
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setCommandOpen((open) => !open)
+      }
+    }
+
+    document.addEventListener("keydown", down)
+    return () => document.removeEventListener("keydown", down)
+  }, [])
 
   // Cast Sidebar to a typed component so TypeScript knows which props it accepts
   const SidebarTyped = Sidebar as React.ComponentType<{
@@ -56,14 +71,24 @@ export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
   }
 
   return (
-    <Layout
-      activeModule={activeModule}
-      onModuleChange={setActiveModule}
-      userRole={userRole}
-      userName={userName}
-      onLogout={onLogout}
-    >
-      {renderModule()}
-    </Layout>
+    <>
+      <Layout
+        activeModule={activeModule}
+        onModuleChange={setActiveModule}
+        userRole={userRole}
+        userName={userName}
+        onLogout={onLogout}
+      >
+        {renderModule()}
+      </Layout>
+      
+      <CommandPalette
+        open={commandOpen}
+        onOpenChange={setCommandOpen}
+        onNavigate={setActiveModule}
+        onLogout={onLogout}
+        userRole={userRole}
+      />
+    </>
   )
 }
