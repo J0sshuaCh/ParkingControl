@@ -2,11 +2,14 @@
 
 import { createPortal } from "react-dom"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Eye, Search, Edit2, Printer, RefreshCcw, X } from "lucide-react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Plus, Trash2, Eye, Search, Edit2, Printer, RefreshCcw, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { toast } from "sonner"
 import { getEspaciosLibres, getVehiculosActivos, registrarEntrada, verificarPlaca, type EspacioLibre, type VehiculoActivo } from "@/services/vehiculoService"
 import { updateTicket, anularTicket } from "@/services/ticketService"
 import { generateEntryTicket } from "@/lib/ticketUtils"
@@ -48,35 +51,35 @@ export function DetailModal({ vehicle, onClose, onEdit, onAnulate }: DetailModal
   const handleSaveEdit = async () => {
     try {
       if (!vehicle.id_ticket) {
-        alert("Error: No se encontró ID de ticket para editar");
+        toast.error("No se encontró ID de ticket para editar");
         return;
       }
       await updateTicket(vehicle.id_ticket, {
         nueva_placa: editData.plate,
         nuevo_tipo: editData.type
       });
-      alert("Ticket actualizado correctamente");
+      toast.success("Ticket actualizado correctamente");
       setIsEditing(false);
       onEdit({ ...vehicle, placa: editData.plate, tipo_vehiculo: editData.type });
       onClose();
     } catch (e: any) {
-      alert("Error al actualizar: " + e.message);
+      toast.error("Error al actualizar: " + e.message);
     }
   }
 
   const handleAnular = async () => {
-    if (!anulReason) return alert("Ingrese un motivo");
+    if (!anulReason) return toast.error("Ingrese un motivo");
     try {
       if (!vehicle.id_ticket) {
-        alert("Error: No se encontró ID de ticket");
+        toast.error("No se encontró ID de ticket");
         return;
       }
       await anularTicket(vehicle.id_ticket, anulReason);
-      alert("Ticket anulado correctamente");
+      toast.success("Ticket anulado correctamente");
       if (onAnulate) onAnulate(vehicle.id_vehiculo);
       onClose();
     } catch (e: any) {
-      alert("Error al anular: " + e.message);
+      toast.error("Error al anular: " + e.message);
     }
   }
 
@@ -194,6 +197,10 @@ export function VehicleRegistration() {
   // Estados de UI
   const [detailModal, setDetailModal] = useState<VehiculoActivo | null>(null)
   const [filterTicket, setFilterTicket] = useState("")
+  
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 8
 
   // --- Cargar Datos Iniciales ---
   const fetchData = useCallback(async () => {
@@ -219,17 +226,17 @@ export function VehicleRegistration() {
   // --- Manejador de Registro ---
   const handleRegister = async () => {
     if (!formData.plate) {
-      alert("Por favor ingresa la placa del vehículo.")
+      toast.warning("Por favor ingresa la placa del vehículo.")
       return
     }
 
     if (!formData.plate.includes("-")) {
-      alert("La placa debe incluir un guión (ej: ABC-123).")
+      toast.warning("La placa debe incluir un guión (ej: ABC-123).")
       return;
     }
 
     if (!formData.autoAssign && !selectedSpaceId) {
-      alert("Por favor selecciona un espacio manual.")
+      toast.warning("Por favor selecciona un espacio manual.")
       return
     }
 
@@ -238,7 +245,7 @@ export function VehicleRegistration() {
 
       const existe = await verificarPlaca(formData.plate.toUpperCase());
       if (existe) {
-        alert(`❌ Error: El vehículo con placa ${formData.plate} ya se encuentra DENTRO del estacionamiento.`);
+        toast.error(`El vehículo con placa ${formData.plate} ya se encuentra DENTRO del estacionamiento.`);
         setLoading(false);
         return;
       }
@@ -250,7 +257,9 @@ export function VehicleRegistration() {
         id_espacio_manual: formData.autoAssign ? undefined : selectedSpaceId
       })
 
-      alert(`✅ ¡Registro Exitoso!\nTicket: ${response.ticket}\nEspacio: ${response.espacio}`)
+      toast.success(`¡Registro Exitoso!`, {
+        description: `Ticket: ${response.ticket} | Espacio: ${response.espacio}`
+      })
 
       setFormData({ ...formData, plate: "" })
       setSelectedSpaceId("")
@@ -258,7 +267,7 @@ export function VehicleRegistration() {
 
     } catch (err: any) {
       console.error(err)
-      alert(`❌ Error: ${err.message || "No se pudo registrar el vehículo"}`)
+      toast.error(err.message || "No se pudo registrar el vehículo")
     } finally {
       setLoading(false);
     }
@@ -273,23 +282,35 @@ export function VehicleRegistration() {
     return true
   })
 
+  // Paginación
+  const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage)
+  const paginatedVehicles = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage
+    return filteredVehicles.slice(start, start + itemsPerPage)
+  }, [filteredVehicles, currentPage])
+
+  // Resetear página al filtrar
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filterTicket])
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Registro de Vehículos</h1>
-          <p className="text-muted-foreground">Registra la entrada de nuevos vehículos y genera tickets.</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 md:mb-2">Registro de Vehículos</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Registra la entrada de nuevos vehículos y genera tickets.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="w-full sm:w-auto">
           <RefreshCcw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Actualizar
         </Button>
       </div>
 
       {/* --- Formulario de Registro --- */}
-      <Card className="p-6 bg-card border border-border">
-        <h2 className="text-lg font-semibold mb-4">Registrar Entrada</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <Card className="p-4 md:p-6 bg-card border border-border">
+        <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Registrar Entrada</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
 
           {/* Placa */}
           <div>
@@ -370,69 +391,85 @@ export function VehicleRegistration() {
       </Card>
 
       {/* --- Filtros --- */}
-      <Card className="p-6 bg-card border border-border">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Buscar por Ticket o Placa</label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Ej: TK-001 o ABC-123"
-                value={filterTicket}
-                onChange={(e) => setFilterTicket(e.target.value)}
-                className="flex-1 bg-input border-border"
-              />
-              <Button variant="outline" size="sm">
-                <Search className="w-4 h-4" />
+      <Card className="p-4 md:p-6 bg-card border border-border">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por ticket o placa..."
+              value={filterTicket}
+              onChange={(e) => setFilterTicket(e.target.value)}
+              className="pl-9 bg-background"
+            />
+            {filterTicket && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setFilterTicket("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+              >
+                <X className="w-3.5 h-3.5" />
               </Button>
-            </div>
+            )}
           </div>
         </div>
       </Card>
 
       {/* --- Tabla de Activos --- */}
-      <Card className="p-6 bg-card border border-border">
-        <h2 className="text-lg font-semibold mb-4">Tickets de vehículos en el Parqueo ({filteredVehicles.length})</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-4 font-semibold">Ticket</th>
-                <th className="text-left py-3 px-4 font-semibold">Placa</th>
-                <th className="text-left py-3 px-4 font-semibold">Tipo</th>
-                <th className="text-left py-3 px-4 font-semibold">Hora Ingreso</th>
-                <th className="text-left py-3 px-4 font-semibold">Espacio</th>
-                <th className="text-left py-3 px-4 font-semibold">Estado</th>
-                <th className="text-left py-3 px-4 font-semibold">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredVehicles.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                    No hay vehículos registrados actualmente.
-                  </td>
-                </tr>
-              ) : (
-                filteredVehicles.map((vehicle) => (
-                  <tr key={vehicle.id_vehiculo} className="border-b border-border hover:bg-muted/50">
-                    <td className="py-3 px-4 font-medium text-primary">{vehicle.codigo_ticket}</td>
-                    <td className="py-3 px-4 font-medium">{vehicle.placa}</td>
-                    <td className="py-3 px-4">{vehicle.tipo_vehiculo}</td>
-                    <td className="py-3 px-4">{vehicle.hora_ingreso}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                        {vehicle.espacio}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                        {vehicle.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 flex gap-2">
+      <Card className="p-4 md:p-6 bg-card border border-border">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base md:text-lg font-semibold">
+            Tickets de vehículos en el Parqueo 
+            <Badge variant="secondary" className="ml-2">{filteredVehicles.length}</Badge>
+          </h2>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="rounded-l-lg">Ticket</TableHead>
+              <TableHead>Placa</TableHead>
+              <TableHead className="hidden sm:table-cell">Tipo</TableHead>
+              <TableHead className="hidden md:table-cell">Hora Ingreso</TableHead>
+              <TableHead>Espacio</TableHead>
+              <TableHead className="hidden sm:table-cell">Estado</TableHead>
+              <TableHead className="rounded-r-lg text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredVehicles.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-12">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="p-3 rounded-full bg-muted">
+                      <Search className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground font-medium">No hay vehículos registrados</p>
+                    <p className="text-sm text-muted-foreground">Los vehículos activos aparecerán aquí</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedVehicles.map((vehicle) => (
+                <TableRow key={vehicle.id_vehiculo} className="group">
+                  <TableCell className="font-mono text-xs text-primary font-medium">{vehicle.codigo_ticket}</TableCell>
+                  <TableCell className="font-bold">{vehicle.placa}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <Badge variant="outline" className="font-normal">{vehicle.tipo_vehiculo}</Badge>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-muted-foreground text-sm">{vehicle.hora_ingreso}</TableCell>
+                  <TableCell>
+                    <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-0">{vehicle.espacio}</Badge>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-100 border-0">
+                      {vehicle.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end opacity-70 group-hover:opacity-100 transition-opacity">
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         onClick={() => setDetailModal(vehicle)}
                         className="text-primary hover:bg-primary/10"
                         title="Ver Detalles / Editar / Anular"
@@ -441,19 +478,50 @@ export function VehicleRegistration() {
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         onClick={() => handleReprint(vehicle)}
-                        className="text-primary hover:bg-secondary/10"
+                        className="text-muted-foreground hover:bg-muted"
+                        title="Reimprimir ticket"
                       >
                         <Printer className="w-4 h-4" />
                       </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+
+        {/* Paginación */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredVehicles.length)} de {filteredVehicles.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-medium px-2">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
 
