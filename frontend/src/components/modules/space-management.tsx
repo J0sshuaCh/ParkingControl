@@ -4,7 +4,9 @@ import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Car, Lock, CheckCircle, ParkingCircle, X, AlertTriangle, Map } from "lucide-react"
+import { toast } from "sonner"
 
 // --- Importar el servicio de espacios ---
 // RUTA CORREGIDA: Incluimos .js para asegurar que el compilador resuelva el módulo transpuesto.
@@ -52,7 +54,7 @@ function ReserveModal({ space, onClose, onConfirm }: any) {
       onClose()
     } else {
       console.log("Por favor, ingrese el motivo y la duración.")
-      alert("Por favor, ingrese el motivo y la duración.")
+      toast.warning("Por favor, ingrese el motivo y la duración.")
     }
   }
 
@@ -318,13 +320,13 @@ export function SpaceManagement() {
 
     } catch (err: any) {
       console.error("Error al confirmar reserva:", err);
-      alert(`Error al reservar: ${err.message || 'Error de conexión'}`);
+      toast.error(`Error al reservar: ${err.message || 'Error de conexión'}`);
     }
   }
   const handleCancelReservation = async (spaceId: string) => {
     const spaceToFree = spaces.find(s => s.id === spaceId);
     if (!spaceToFree || !spaceToFree.dbId) {
-      alert("Error: ID numérico del espacio no encontrado para liberar.");
+      toast.error("ID numérico del espacio no encontrado para liberar.");
       return;
     }
 
@@ -337,7 +339,7 @@ export function SpaceManagement() {
       }
     } catch (err: any) {
       console.error("Error al cancelar reserva:", err);
-      alert(`Error al cancelar reserva: ${err.message || 'Error de conexión'}`);
+      toast.error(`Error al cancelar reserva: ${err.message || 'Error de conexión'}`);
     }
   }
 
@@ -354,13 +356,12 @@ export function SpaceManagement() {
   // --- Renderizado del Mapa (HU7) ---
   const getSpaceClass = (status: SpaceStatus) => {
     switch (status) {
-      // ESTILO VERDE RESTAURADO
       case "libre":
-        return "bg-green-100 text-green-700 hover:bg-green-200"
+        return "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/40 dark:to-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/50 dark:hover:to-emerald-800/40 hover:shadow-md hover:-translate-y-0.5"
       case "ocupado":
-        return "bg-red-100 text-red-700 opacity-80 cursor-not-allowed"
+        return "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/40 dark:to-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 opacity-90 cursor-not-allowed"
       case "reservado":
-        return "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+        return "bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/40 dark:to-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:from-amber-100 hover:to-amber-200 dark:hover:from-amber-900/50 dark:hover:to-amber-800/40 hover:shadow-md hover:-translate-y-0.5"
     }
   }
 
@@ -377,9 +378,28 @@ export function SpaceManagement() {
 
   if (loading) {
     return (
-      <Card className="p-6 text-center text-muted-foreground">
-        Cargando mapa de ocupación...
-      </Card>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-9 w-64 mb-2" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+        <Card className="p-6 bg-card border border-border">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+        </Card>
+        <Card className="p-4 md:p-6 bg-card border border-border">
+          <Skeleton className="h-6 w-48 mb-4" />
+          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-10 gap-1.5 md:gap-2">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 sm:h-20 w-full" />
+            ))}
+          </div>
+        </Card>
+      </div>
     );
   }
 
@@ -458,31 +478,56 @@ export function SpaceManagement() {
       </Card>
 
       {/* --- Mapa de Espacios (HU7) --- */}
-      <Card className="p-6 bg-card border border-border">
-        <h2 className="text-lg font-semibold mb-4 flex items-center">
-          <Map className="w-5 h-5 mr-2" />
-          Mapa de Estacionamiento
-        </h2>
-        <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-          {spaces.map((space) => (
-            <Button
-              key={space.id}
-              variant="outline"
-              className={`h-20 flex flex-col items-center justify-center p-2 text-center ${getSpaceClass(
-                space.status,
-              )}`}
-              onClick={() => handleSpaceClick(space)}
-              disabled={space.status === "ocupado"}
-            >
-              <span className="font-bold text-lg">{space.id}</span>
-              <div className="mt-1">{getSpaceIcon(space.status)}</div>
-              {space.status === "ocupado" && (
-                <span className="text-xs font-mono mt-1">
-                  {space.vehiclePlate}
-                </span>
-              )}
-            </Button>
-          ))}
+      <Card className="p-4 md:p-6 bg-card border border-border overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h2 className="text-base md:text-lg font-semibold flex items-center">
+            <Map className="w-4 h-4 md:w-5 md:h-5 mr-2 text-primary" />
+            Mapa de Estacionamiento
+          </h2>
+          {/* Leyenda */}
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/40 dark:to-emerald-800/30 border border-emerald-200 dark:border-emerald-800" />
+              <span className="text-muted-foreground">Libre</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/40 dark:to-red-800/30 border border-red-200 dark:border-red-800" />
+              <span className="text-muted-foreground">Ocupado</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/40 dark:to-amber-800/30 border border-amber-200 dark:border-amber-800" />
+              <span className="text-muted-foreground">Reservado</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Grid de espacios con mejor diseño */}
+        <div className="relative p-4 bg-muted/30 rounded-xl border border-border/50">
+          {/* Decorative road lines */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-full bg-border/30" />
+          
+          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-10 gap-2 md:gap-3">
+            {spaces.map((space) => (
+              <Button
+                key={space.id}
+                variant="outline"
+                className={`h-16 sm:h-20 flex flex-col items-center justify-center p-1.5 md:p-2 text-center text-xs rounded-lg border-2 transition-all duration-200 ${getSpaceClass(
+                  space.status,
+                )}`}
+                onClick={() => handleSpaceClick(space)}
+                disabled={space.status === "ocupado"}
+                title={`${space.id} - ${space.status}${space.vehiclePlate ? ` - ${space.vehiclePlate}` : ''}`}
+              >
+                <span className="font-bold text-sm md:text-base">{space.id}</span>
+                <div className="mt-0.5 md:mt-1">{getSpaceIcon(space.status)}</div>
+                {space.status === "ocupado" && (
+                  <span className="text-[9px] md:text-[10px] font-mono mt-0.5 md:mt-1 truncate max-w-full opacity-75">
+                    {space.vehiclePlate}
+                  </span>
+                )}
+              </Button>
+            ))}
+          </div>
         </div>
       </Card>
 
