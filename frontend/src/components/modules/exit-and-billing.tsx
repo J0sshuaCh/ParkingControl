@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, CheckCircle, Printer, Search, RefreshCcw, MousePointerClick, X, Edit2 } from "lucide-react";
 import { buscarTicketPorPlaca, procesarPago } from "@/services/ticketService";
 import type { Ticket } from "@/services/ticketService";
@@ -178,7 +179,13 @@ export function ExitAndBilling() {
                 {filteredVehicles.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center py-12 text-muted-foreground">
-                      {loadingList ? "Cargando vehículos..." : "No se encontraron vehículos."}
+                      {loadingList ? (
+                        <div className="space-y-3 py-4">
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-10 w-full" />
+                        </div>
+                      ) : "No se encontraron vehículos."}
                     </td>
                   </tr>
                 ) : (
@@ -232,7 +239,7 @@ export function ExitAndBilling() {
       </div>
 
       {/* --- COLUMNA DERECHA (1/3): PANTALLA DE COBRO --- */}
-      <div className="lg:col-span-1 space-y-6 sticky top-6">
+      <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-6">
         {/* Mensajes de estado */}
         {error && (
           <Card className="p-4 bg-destructive/10 border-destructive text-destructive flex items-center gap-2">

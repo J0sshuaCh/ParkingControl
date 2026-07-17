@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Trash2, CalendarClock } from "lucide-react"
 import { getTicketHistory, type TicketHistorial } from "@/services/ticketService"
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns"
@@ -55,13 +56,13 @@ export function TicketHistory() {
     });
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
             <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Historial de Tickets</h1>
-                <p className="text-muted-foreground">Consulta el historial de tickets emitidos por semana.</p>
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 md:mb-2">Historial de Tickets</h1>
+                <p className="text-sm md:text-base text-muted-foreground">Consulta el historial de tickets emitidos por semana.</p>
             </div>
 
-            <Card className="p-6 bg-card border border-border">
+            <Card className="p-4 md:p-6 bg-card border border-border">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <div className="flex items-center gap-2">
                         <h2 className="text-xl font-bold">
@@ -115,7 +116,13 @@ export function TicketHistory() {
                 </div>
 
                 {loadingHistory ? (
-                    <p className="text-center py-8">Cargando historial...</p>
+                    <div className="space-y-3 py-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
