@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Trash2, Edit2, History, X, UserPlus } from "lucide-react"
+import { toast } from "sonner"
 import { getTarifas, createTarifa, deleteTarifa, updateTarifa, type Tarifa } from "@/services/tarifasService"
 import { getUsuarios, createUsuario, deleteUsuario, updateUsuario, type Usuario } from "@/services/usuariosService"
 
@@ -215,7 +216,7 @@ export function Administration() {
   // --- HANDLERS USUARIOS ---
   const handleAddUser = async () => {
     if (!newUser.nombre_completo || !newUser.username || !newUser.password || !newUser.email) {
-      alert("Por favor completa todos los campos del usuario.")
+      toast.warning("Por favor completa todos los campos del usuario.")
       return
     }
 
@@ -228,23 +229,23 @@ export function Administration() {
         email: newUser.email,
         id_rol: roleId
       })
-      alert("Usuario creado exitosamente")
+      toast.success("Usuario creado exitosamente")
       setNewUser({ nombre_completo: "", username: "", password: "", email: "", roleName: "Operador" })
       loadData()
     } catch (error: any) {
       console.error(error)
-      alert(error.message || "Error al crear usuario")
+      toast.error(error.message || "Error al crear usuario")
     }
   }
   const handleUpdateUser = async (id: number, data: Partial<Usuario>) => {
     try {
       await updateUsuario(id, data)
-      alert("Usuario actualizado correctamente")
+      toast.success("Usuario actualizado correctamente")
       loadData()
       setEditingUser(null)
     } catch (error: any) {
       console.error(error)
-      alert("Error al actualizar usuario: " + (error.message || "Error desconocido"))
+      toast.error("Error al actualizar usuario: " + (error.message || "Error desconocido"))
     }
   }
 
@@ -252,9 +253,10 @@ export function Administration() {
     if (confirm("¿Eliminar este usuario permanentemente?")) {
       try {
         await deleteUsuario(id)
+        toast.success("Usuario eliminado correctamente")
         loadData()
       } catch (error) {
-        alert("No se pudo eliminar el usuario.")
+        toast.error("No se pudo eliminar el usuario.")
       }
     }
   }
@@ -269,31 +271,33 @@ export function Administration() {
           fecha_vigencia_inicio: new Date().toISOString().split('T')[0],
           estado: 'En vigencia'
         })
+        toast.success("Tarifa agregada correctamente")
         setNewRate({ tipo_vehiculo: "Sedan", precio_hora: "" })
         loadData()
-      } catch (error) { console.error(error); alert("Error al agregar tarifa") }
+      } catch (error) { console.error(error); toast.error("Error al agregar tarifa") }
     }
   }
 
   const handleUpdateRate = async (id: number, data: Partial<Tarifa>) => {
     try {
       await updateTarifa(id, data)
+      toast.success("Tarifa actualizada correctamente")
       loadData()
-    } catch (e) { alert("Error al actualizar") }
+    } catch (e) { toast.error("Error al actualizar") }
   }
 
   const handleDeleteRate = async (id: number) => {
     if (confirm("¿Eliminar tarifa?")) {
-      try { await deleteTarifa(id); loadData() } catch (e) { alert("Error eliminando") }
+      try { await deleteTarifa(id); loadData(); toast.success("Tarifa eliminada") } catch (e) { toast.error("Error eliminando") }
     }
   }
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Administración</h1>
-        <p className="text-muted-foreground">Gestión integral del sistema.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 md:mb-2">Administración</h1>
+        <p className="text-sm md:text-base text-muted-foreground">Gestión integral del sistema.</p>
       </div>
 
       <Tabs defaultValue="users" className="w-full">

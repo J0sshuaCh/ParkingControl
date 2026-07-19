@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { generarReporte } from '@/services/reportesService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Loader2, DollarSign, Car, Clock, Calendar, BarChart3, Search, Download, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8800";
@@ -34,7 +35,7 @@ export function ReportsModule() {
 
     const handleGenerate = async () => {
         if (!fechaInicio || !fechaFin) {
-            alert("Por favor selecciona ambas fechas");
+            toast.warning("Por favor selecciona ambas fechas");
             return;
         }
 
@@ -55,7 +56,7 @@ export function ReportsModule() {
 
         } catch (error) {
             console.error(error);
-            alert("Error al generar el reporte");
+            toast.error("Error al generar el reporte");
         } finally {
             setLoading(false);
             setLoadingTickets(false);
@@ -92,7 +93,7 @@ export function ReportsModule() {
             { wch: 12 }  // Monto
         ];
         worksheet['!cols'] = wscols;
-        alert("Generando archivo Excel con el detalle de " + paidTickets.length + " tickets...");
+        toast.info("Generando archivo Excel con el detalle de " + paidTickets.length + " tickets...");
 
         // D. Crear el libro de trabajo (Workbook) y agregar la hoja
         const workbook = XLSX.utils.book_new();
@@ -145,7 +146,7 @@ export function ReportsModule() {
             {reportData ? (
                 <div className="space-y-6">
                     {/* --- KPI CARDS (RESUMEN) --- */}
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
