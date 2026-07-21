@@ -1,7 +1,6 @@
-import axios from "axios";
+import api from "@/lib/api";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8800";
-const API_URL = `${BASE_URL}/api/dashboard`;
+const API_URL = "/api/dashboard";
 
 export interface DashboardStats {
     vehiclesInside: number;
@@ -23,7 +22,7 @@ export interface DashboardData {
 
 export const getDashboardOverview = async (): Promise<DashboardData> => {
     try {
-        const res = await axios.get(`${API_URL}/overview`);
+        const res = await api.get(`${API_URL}/overview`);
         return res.data;
     } catch (err: any) {
         console.error("Error fetching dashboard overview:", err);

@@ -1,12 +1,10 @@
-'use client'
-import axios from 'axios';
+import api from "@/lib/api";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8800";
-const API_URL = `${BASE_URL}/api/reportes`;
-// 1. Definimos las interfaces (la estructura de tus datos)
+const API_URL = "/api/reportes";
+
 export interface ReporteResumen {
     id_reporte: number;
-    total_ingresos: string; // MySQL devuelve decimales como string a veces, o number
+    total_ingresos: string;
     total_vehiculos: number;
     promedio_minutos_permanencia: string | number;
     ticket_promedio: string | number;
@@ -22,27 +20,14 @@ export interface ReporteData {
     resumen: ReporteResumen;
     grafica: ReporteGraficaItem[];
 }
-// 2. Usamos la interfaz en la promesa de retorno: Promise<ReporteData>
+
 export const generarReporte = async (fechaInicio: string, fechaFin: string): Promise<ReporteData> => {
     try {
-        const response = await fetch(`${API_URL}/generar`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                fecha_inicio: fechaInicio,
-                fecha_fin: fechaFin,
-                id_usuario_generador: 1
-            }),
+        const response = await api.post(`${API_URL}/generar`, {
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin,
         });
-
-        if (!response.ok) {
-            throw new Error('Error al generar el reporte');
-        }
-
-        const data = await response.json();
-        return data.data; // Esto debe coincidir con la estructura ReporteData
+        return response.data.data;
     } catch (error) {
         console.error(error);
         throw error;
@@ -51,9 +36,8 @@ export const generarReporte = async (fechaInicio: string, fechaFin: string): Pro
 
 export const obtenerHistorial = async () => {
     try {
-        const response = await fetch(`${API_URL}/historial`);
-        if (!response.ok) throw new Error('Error al obtener historial');
-        return await response.json();
+        const response = await api.get(`${API_URL}/historial`);
+        return response.data;
     } catch (error) {
         console.error(error);
         throw error;

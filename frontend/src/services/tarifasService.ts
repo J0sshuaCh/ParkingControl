@@ -1,7 +1,6 @@
-import axios from "axios";
+import api from "@/lib/api";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8800";
-const API_URL = `${BASE_URL}/api/tarifas`;
+const API_URL = "/api/tarifas";
 
 export interface Tarifa {
     id_tarifa: number;
@@ -14,9 +13,8 @@ export interface Tarifa {
 
 export const getTarifaPorTipo = async (tipoVehiculo: string): Promise<Tarifa | null> => {
     try {
-        const res = await axios.get(API_URL);
+        const res = await api.get(API_URL);
         const tarifas: Tarifa[] = res.data;
-        // Retorna la primera tarifa vigente para el tipo de vehículo
         return tarifas.find(t => t.tipo_vehiculo === tipoVehiculo && t.estado === 'En vigencia') || null;
     } catch (error) {
         console.error("Error al obtener tarifa:", error);
@@ -26,7 +24,7 @@ export const getTarifaPorTipo = async (tipoVehiculo: string): Promise<Tarifa | n
 
 export const getTarifas = async (): Promise<Tarifa[]> => {
     try {
-        const res = await axios.get(API_URL);
+        const res = await api.get(API_URL);
         return res.data;
     } catch (error) {
         console.error("Error al obtener tarifas:", error);
@@ -35,15 +33,13 @@ export const getTarifas = async (): Promise<Tarifa[]> => {
 };
 
 export const createTarifa = async (tarifa: Omit<Tarifa, "id_tarifa">): Promise<Tarifa> => {
-    const res = await axios.post(API_URL, tarifa);
+    const res = await api.post(API_URL, tarifa);
     return res.data;
 };
 
 export const updateTarifa = async (id: number, tarifa: Partial<Tarifa>) => {
     try {
-        const res = await axios.put(`${API_URL}/${id}`, tarifa, {
-            headers: { "Content-Type": "application/json" },
-        });
+        const res = await api.put(`${API_URL}/${id}`, tarifa);
         return res.data;
     } catch (err: any) {
         throw err.response?.data || { message: "Error al actualizar la tarifa" };
@@ -51,5 +47,5 @@ export const updateTarifa = async (id: number, tarifa: Partial<Tarifa>) => {
 };
 
 export const deleteTarifa = async (id: number) => {
-    await axios.delete(`${API_URL}/${id}`);
+    await api.delete(`${API_URL}/${id}`);
 };

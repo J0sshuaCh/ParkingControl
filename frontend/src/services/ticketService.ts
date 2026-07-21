@@ -1,7 +1,6 @@
-import axios from "axios";
+import api from "@/lib/api";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8800";
-const API_URL = `${BASE_URL}/api/tickets`;
+const API_URL = "/api/tickets";
 
 export interface Ticket {
     id_ticket: number;
@@ -34,7 +33,7 @@ export interface TicketHistorial {
 
 export const buscarTicketPorPlaca = async (placa: string): Promise<Ticket> => {
     try {
-        const res = await axios.get<Ticket>(`${API_URL}/buscar/${placa}`);
+        const res = await api.get<Ticket>(`${API_URL}/buscar/${placa}`);
         return res.data;
     } catch (err: any) {
         throw err.response?.data || { message: "Error al buscar ticket" };
@@ -48,9 +47,7 @@ export const procesarPago = async (
 ) => {
     try {
         const payload = { id_ticket, id_espacio, monto_final: monto_total };
-        const res = await axios.post(`${API_URL}/pagar`, payload, {
-            headers: { "Content-Type": "application/json" },
-        });
+        const res = await api.post(`${API_URL}/pagar`, payload);
         return res.data;
     } catch (err: any) {
         throw err.response?.data || { message: "Error al procesar pago" };
@@ -59,17 +56,16 @@ export const procesarPago = async (
 
 export const obtenerTickets = async (): Promise<Ticket[]> => {
     try {
-        const res = await axios.get<Ticket[]>(API_URL);
+        const res = await api.get<Ticket[]>(API_URL);
         return res.data;
     } catch (err: any) {
         throw err.response?.data || { message: "Error al obtener tickets" };
     }
 };
 
-// Nuevas funciones para edición y anulación
 export const updateTicket = async (id: number, data: { nueva_placa: string, nuevo_tipo: string }) => {
     try {
-        const res = await axios.put(`${API_URL}/${id}`, data);
+        const res = await api.put(`${API_URL}/${id}`, data);
         return res.data;
     } catch (err: any) {
         throw err.response?.data || { message: "Error al actualizar ticket" };
@@ -78,7 +74,7 @@ export const updateTicket = async (id: number, data: { nueva_placa: string, nuev
 
 export const anularTicket = async (id: number, motivo: string) => {
     try {
-        const res = await axios.post(`${API_URL}/${id}/anular`, { motivo });
+        const res = await api.post(`${API_URL}/${id}/anular`, { motivo });
         return res.data;
     } catch (err: any) {
         throw err.response?.data || { message: "Error al anular ticket" };
@@ -87,7 +83,7 @@ export const anularTicket = async (id: number, motivo: string) => {
 
 export const getTicketHistory = async (start: string, end: string): Promise<TicketHistorial[]> => {
     try {
-        const res = await axios.get<TicketHistorial[]>(`${API_URL}/historial?start=${start}&end=${end}`);
+        const res = await api.get<TicketHistorial[]>(`${API_URL}/historial?start=${start}&end=${end}`);
         return res.data;
     } catch (err: any) {
         throw err.response?.data || { message: "Error al obtener historial" };
