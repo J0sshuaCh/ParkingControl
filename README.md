@@ -101,7 +101,7 @@ Para ejecutar el proyecto localmente se recomienda tener instalado:
 Para ejecutar frontend y backend manualmente tambien se requiere:
 
 - Node.js 20 o superior
-- npm
+- pnpm
 - MySQL 8.0
 
 ## Ejecucion local con Docker
@@ -161,7 +161,7 @@ cd frontend
 3. Instalar dependencias:
 
 ```bash
-npm install
+pnpm install
 ```
 
 4. Crear archivo de entorno:
@@ -179,7 +179,7 @@ VITE_API_URL=http://localhost:8800
 6. Ejecutar el frontend:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 7. Abrir en el navegador:
@@ -300,19 +300,19 @@ VITE_API_URL=https://url-del-backend
 
 ```bash
 cd backend
-npm install
-npm run dev
-npm start
+pnpm install
+pnpm run dev
+pnpm start
 ```
 
 ### Frontend
 
 ```bash
 cd frontend
-npm install
-npm run dev
-npm run build
-npm run preview
+pnpm install
+pnpm run dev
+pnpm run build
+pnpm run preview
 ```
 
 ## Estado del proyecto
