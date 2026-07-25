@@ -48,7 +48,7 @@ export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
   const renderModule = () => {
     switch (activeModule) {
       case "overview":
-        return <DashboardOverview />
+        return <DashboardOverview onNavigate={setActiveModule} />
       case "vehicles":
         return <VehicleRegistration />
       case "billing":
@@ -59,14 +59,14 @@ export function Dashboard({ userName, userRole, onLogout }: DashboardProps) {
         return <SpaceManagement />
       case "reports":
         // Protección extra: Si no es admin, no renderiza
-        if (userRole.toLowerCase() !== "administrador" && userRole.toLowerCase() !== "supervisor") return <DashboardOverview />
+        if (userRole.toLowerCase() !== "administrador" && userRole.toLowerCase() !== "supervisor") return <DashboardOverview onNavigate={setActiveModule} />
         else return <ReportsModule />
       case "admin":
         // Protección extra: Si no es admin, no renderiza
-        if (userRole.toLowerCase() !== "administrador") return <DashboardOverview />
+        if (userRole.toLowerCase() !== "administrador") return <DashboardOverview onNavigate={setActiveModule} />
         else return <Administration />
       default:
-        return <DashboardOverview />
+        return <DashboardOverview onNavigate={setActiveModule} />
     }
   }
 
