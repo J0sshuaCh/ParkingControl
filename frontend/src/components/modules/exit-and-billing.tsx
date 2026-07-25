@@ -133,7 +133,7 @@ export function ExitAndBilling() {
       {/* --- COLUMNA IZQUIERDA (2/3): LISTA DE VEHÍCULOS --- */}
       <div className="lg:col-span-2 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Salida y Cobro</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Salida y Cobro</h1>
           <p className="text-muted-foreground">Seleccione un vehículo de la lista para procesar su salida.</p>
         </div>
 
@@ -167,18 +167,18 @@ export function ExitAndBilling() {
             <table className="w-full text-sm text-left">
               <thead className="bg-muted/50 text-muted-foreground sticky top-0 z-10 uppercase text-xs tracking-wider">
                 <tr>
-                  <th className="py-3 px-6 font-medium">Ticket</th>
-                  <th className="py-3 px-6 font-medium">Placa</th>
-                  <th className="py-3 px-6 font-medium hidden sm:table-cell">Ingreso</th>
-                  <th className="py-3 px-6 font-medium">Tipo</th>
-                  <th className="py-3 px-6 font-medium">Espacio</th>
-                  <th className="py-3 px-6 font-medium text-right">Acción</th>
+                  <th className="py-2 px-3 md:py-3 md:px-6 font-medium">Ticket</th>
+                  <th className="py-2 px-3 md:py-3 md:px-6 font-medium">Placa</th>
+                  <th className="py-2 px-3 md:py-3 md:px-6 font-medium hidden sm:table-cell">Ingreso</th>
+                  <th className="py-2 px-3 md:py-3 md:px-6 font-medium">Tipo</th>
+                  <th className="py-2 px-3 md:py-3 md:px-6 font-medium">Espacio</th>
+                  <th className="py-2 px-3 md:py-3 md:px-6 font-medium text-right">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredVehicles.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <tr>
+                    <td colSpan={6} className="text-center py-8 md:py-12 text-muted-foreground">
                       {loadingList ? (
                         <div className="space-y-3 py-4">
                           <Skeleton className="h-10 w-full" />
@@ -196,37 +196,39 @@ export function ExitAndBilling() {
                         key={vehicle.id_vehiculo}
                         className={`transition-colors hover:bg-muted/50 ${isSelected ? "bg-primary/5" : ""}`}
                       >
-                        <td className="py-3 px-6 font-mono text-xs text-muted-foreground">{vehicle.codigo_ticket}</td>
-                        <td className="py-3 px-6 font-bold text-foreground">{vehicle.placa}</td>
-                        <td className="py-3 px-6 hidden sm:table-cell text-muted-foreground">{vehicle.hora_ingreso}</td>
-                        <td className="py-3 px-6">{vehicle.tipo_vehiculo}</td>
-                        <td className="py-3 px-6">
+                        <td className="py-2 px-3 md:py-3 md:px-6 font-mono text-xs text-muted-foreground">{vehicle.codigo_ticket}</td>
+                        <td className="py-2 px-3 md:py-3 md:px-6 font-bold text-foreground">{vehicle.placa}</td>
+                        <td className="py-2 px-3 md:py-3 md:px-6 hidden sm:table-cell text-muted-foreground">{vehicle.hora_ingreso}</td>
+                        <td className="py-2 px-3 md:py-3 md:px-6">{vehicle.tipo_vehiculo}</td>
+                        <td className="py-2 px-3 md:py-3 md:px-6">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
                             {vehicle.espacio}
                           </span>
                         </td>
-                        <td className="py-3 px-6 text-right flex gap-2 justify-end">
-                          {/* Botón Detalles/Editar/Anular */}
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setDetailModalVehicle(vehicle)}
-                            title="Editar / Anular"
-                            className="shadow-sm"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
+                        <td className="py-2 px-3 md:py-3 md:px-6 text-right">
+                          <div className="flex gap-2 justify-end flex-wrap">
+                            {/* Botón Detalles/Editar/Anular */}
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setDetailModalVehicle(vehicle)}
+                              title="Editar / Anular"
+                              className="shadow-sm"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
 
-                          {/* Botón Cobrar (Distintivo) */}
-                          <Button
-                            size="sm"
-                            variant={isSelected ? "secondary" : "default"}
-                            onClick={() => handleSelectVehicle(vehicle.placa)}
-                            className="h-8 shadow-none"
-                            disabled={isSelected}
-                          >
-                            {isSelected ? "Seleccionado" : "Cobrar"}
-                          </Button>
+                            {/* Botón Cobrar (Distintivo) */}
+                            <Button
+                              size="sm"
+                              variant={isSelected ? "secondary" : "default"}
+                              onClick={() => handleSelectVehicle(vehicle.placa)}
+                              className="h-8 shadow-none"
+                              disabled={isSelected}
+                            >
+                              {isSelected ? "Seleccionado" : "Cobrar"}
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -289,7 +291,7 @@ export function ExitAndBilling() {
 
             <div className="bg-primary/5 p-6 rounded-xl mb-6 text-center border border-primary/10">
               <p className="text-xs text-muted-foreground uppercase font-bold mb-1 tracking-wider">Total a Pagar</p>
-              <p className="text-5xl font-extrabold text-primary">
+              <p className="text-3xl md:text-5xl font-extrabold text-primary">
                 S/. {(currentTicket.monto_total ?? 0).toFixed(2)}
               </p>
             </div>

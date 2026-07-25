@@ -426,13 +426,13 @@ export function VehicleRegistration() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="rounded-l-lg">Ticket</TableHead>
-              <TableHead>Placa</TableHead>
-              <TableHead className="hidden sm:table-cell">Tipo</TableHead>
-              <TableHead className="hidden md:table-cell">Hora Ingreso</TableHead>
-              <TableHead>Espacio</TableHead>
-              <TableHead className="hidden sm:table-cell">Estado</TableHead>
-              <TableHead className="rounded-r-lg text-right">Acciones</TableHead>
+              <TableHead className="rounded-l-lg text-xs md:text-sm">Ticket</TableHead>
+              <TableHead className="text-xs md:text-sm">Placa</TableHead>
+              <TableHead className="hidden sm:table-cell text-xs md:text-sm">Tipo</TableHead>
+              <TableHead className="hidden md:table-cell text-xs md:text-sm">Hora Ingreso</TableHead>
+              <TableHead className="text-xs md:text-sm">Espacio</TableHead>
+              <TableHead className="hidden sm:table-cell text-xs md:text-sm">Estado</TableHead>
+              <TableHead className="rounded-r-lg text-right text-xs md:text-sm">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -495,8 +495,8 @@ export function VehicleRegistration() {
 
         {/* Paginación */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 pt-4 border-t">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t gap-3">
+            <p className="text-xs md:text-sm text-muted-foreground text-center sm:text-left">
               Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredVehicles.length)} de {filteredVehicles.length}
             </p>
             <div className="flex items-center gap-2">

@@ -84,11 +84,11 @@ export function TicketHistory() {
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 justify-center">
+                    <div className="flex flex-wrap items-center gap-2 md:gap-4 justify-center w-full md:w-auto">
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="px-3 py-1 bg-input border border-border rounded-md text-sm"
+                            className="px-2 md:px-3 py-1 bg-input border border-border rounded-md text-xs md:text-sm w-full md:w-auto"
                         >
                             <option value="all">Todos los Estados</option>
                             <option value="Emitido">Emitido</option>
@@ -97,20 +97,20 @@ export function TicketHistory() {
                             <option value="Reservado">Reservado</option>
                         </select>
 
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={prevPeriod}>&lt;</Button>
-                            <div className="text-center min-w-[150px]">
-                                <p className="text-sm font-medium">
+                        <div className="flex items-center gap-1 md:gap-2">
+                            <Button variant="outline" size="sm" onClick={prevPeriod} className="px-2 md:px-3">&lt;</Button>
+                            <div className="text-center min-w-[110px] md:min-w-[150px]">
+                                <p className="text-[10px] md:text-sm font-medium">
                                     {viewMode === 'week' ? 'Semana del' : 'Mes de'}
                                 </p>
-                                <p className="text-sm text-muted-foreground capitalize">
+                                <p className="text-[10px] md:text-sm text-muted-foreground capitalize leading-tight">
                                     {viewMode === 'week'
                                         ? `${format(startOfWeek(currentDate, { weekStartsOn: 1 }), "dd MMM", { locale: es })} al ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), "dd MMM", { locale: es })}`
                                         : format(currentDate, "MMMM yyyy", { locale: es })
                                     }
                                 </p>
                             </div>
-                            <Button variant="outline" size="sm" onClick={nextPeriod}>&gt;</Button>
+                            <Button variant="outline" size="sm" onClick={nextPeriod} className="px-2 md:px-3">&gt;</Button>
                         </div>
                     </div>
                 </div>
@@ -128,12 +128,12 @@ export function TicketHistory() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-muted/50">
-                                    <th className="text-left py-2 px-4 rounded-l-md">Ticket</th>
-                                    <th className="text-left py-2 px-4">Placa</th>
-                                    <th className="text-left py-2 px-4">Entrada</th>
-                                    <th className="text-left py-2 px-4">Salida</th>
-                                    <th className="text-left py-2 px-4">Estado</th>
-                                    <th className="text-left py-2 px-4 rounded-r-md">Detalles / Motivo</th>
+                                    <th className="text-left py-2 px-2 md:px-4 rounded-l-md">Ticket</th>
+                                    <th className="text-left py-2 px-2 md:px-4">Placa</th>
+                                    <th className="text-left py-2 px-2 md:px-4">Entrada</th>
+                                    <th className="text-left py-2 px-2 md:px-4">Salida</th>
+                                    <th className="text-left py-2 px-2 md:px-4">Estado</th>
+                                    <th className="text-left py-2 px-2 md:px-4 rounded-r-md">Detalles / Motivo</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -142,11 +142,11 @@ export function TicketHistory() {
                                 ) : (
                                     filteredData.map(t => (
                                         <tr key={t.id_ticket} className="border-b border-border hover:bg-muted/20">
-                                            <td className="py-2 px-4 font-mono">{t.codigo_ticket}</td>
-                                            <td className="py-2 px-4">{t.placa} <span className="text-xs text-muted-foreground">({t.tipo_vehiculo})</span></td>
-                                            <td className="py-2 px-4">{t.hora_entrada}</td>
-                                            <td className="py-2 px-4">{t.hora_salida || "-"}</td>
-                                            <td className="py-2 px-4">
+                                            <td className="py-2 px-2 md:px-4 font-mono text-xs md:text-sm">{t.codigo_ticket}</td>
+                                            <td className="py-2 px-2 md:px-4 text-xs md:text-sm">{t.placa} <span className="text-[10px] md:text-xs text-muted-foreground">({t.tipo_vehiculo})</span></td>
+                                            <td className="py-2 px-2 md:px-4 text-xs md:text-sm">{t.hora_entrada}</td>
+                                            <td className="py-2 px-2 md:px-4 text-xs md:text-sm">{t.hora_salida || "-"}</td>
+                                            <td className="py-2 px-2 md:px-4">
                                                 <span className={`px-2 py-0.5 rounded text-xs font-semibold
                                         ${t.estado === 'Emitido' ? 'bg-blue-100 text-blue-700' :
                                                         t.estado === 'Pagado' ? 'bg-green-100 text-green-700' :
@@ -156,7 +156,7 @@ export function TicketHistory() {
                                                     {t.estado}
                                                 </span>
                                             </td>
-                                            <td className="py-2 px-4 text-xs text-muted-foreground">
+                                            <td className="py-2 px-2 md:px-4 text-xs text-muted-foreground">
                                                 {t.estado === 'Reservado' ? (
                                                     <span className="flex items-center gap-1 text-yellow-700">
                                                         <CalendarClock className="w-3 h-3" /> {t.motivo_anulacion}

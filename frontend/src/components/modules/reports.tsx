@@ -111,14 +111,14 @@ export function ReportsModule() {
         <div className="space-y-6 animate-in fade-in duration-500">
 
             {/* --- SECCIÓN DE FILTROS --- */}
-            <div className="flex flex-col md:flex-row justify-between items-end gap-4 bg-background p-4 rounded-lg shadow-sm border">
+                <div className="flex flex-col md:flex-row justify-between items-end gap-4 bg-background p-3 md:p-4 rounded-lg shadow-sm border">
                 <div className="space-y-2 w-full md:w-auto">
-                    <h2 className="text-2xl font-bold tracking-tight">Reportes Financieros</h2>
+                    <h2 className="text-xl md:text-2xl font-bold tracking-tight">Reportes Financieros</h2>
                     <p className="text-muted-foreground text-sm">Visualiza ingresos, ocupación y detalle de transacciones.</p>
                 </div>
 
-                <div className="flex gap-2 items-end w-full md:w-auto">
-                    <div className="grid gap-1.5">
+                <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end w-full md:w-auto">
+                    <div className="grid gap-1.5 flex-1 min-w-0">
                         <label className="text-xs font-medium">Desde</label>
                         <Input
                             type="date"
@@ -127,7 +127,7 @@ export function ReportsModule() {
                             className="w-full md:w-40"
                         />
                     </div>
-                    <div className="grid gap-1.5">
+                    <div className="grid gap-1.5 flex-1 min-w-0">
                         <label className="text-xs font-medium">Hasta</label>
                         <Input
                             type="date"
@@ -136,7 +136,7 @@ export function ReportsModule() {
                             className="w-full md:w-40"
                         />
                     </div>
-                    <Button onClick={handleGenerate} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={handleGenerate} disabled={loading} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                         Generar
                     </Button>

@@ -91,7 +91,7 @@ function EditUserModal({ user, onClose, onSave }: { user: Usuario | null, onClos
               className="bg-input border-border"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium mb-1">Rol</label>
               <select
@@ -308,7 +308,7 @@ export function Administration() {
 
         {/* --- TAB USUARIOS --- */}
         <TabsContent value="users" className="space-y-4">
-          <Card className="p-6 bg-card border border-border">
+          <Card className="p-4 md:p-6 bg-card border border-border">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-primary" /> Registrar Nuevo Usuario
             </h2>
@@ -355,46 +355,49 @@ export function Administration() {
             </div>
           </Card>
 
-          <Card className="p-6 bg-card border border-border">
+          <Card className="p-4 md:p-6 bg-card border border-border">
             <h2 className="text-lg font-semibold mb-4">Usuarios Registrados ({users.length})</h2>
-            <div className="overflow-x-auto">
+            {/* Vista Desktop: Tabla */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
                   <tr>
-                    <th className="p-3">Nombre</th>
-                    <th className="p-3">Usuario</th>
-                    <th className="p-3">Email</th>
-                    <th className="p-3">Rol</th>
-                    <th className="p-3">Estado</th>
-                    <th className="p-3 text-right">Acciones</th>
+                    <th className="p-2 md:p-3">Nombre</th>
+                    <th className="p-2 md:p-3">Usuario</th>
+                    <th className="p-2 md:p-3">Email</th>
+                    <th className="p-2 md:p-3">Rol</th>
+                    <th className="p-2 md:p-3">Estado</th>
+                    <th className="p-2 md:p-3 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {users.map((user) => (
                     <tr key={user.id_usuario} className="hover:bg-muted/50 transition-colors">
-                      <td className="p-3 font-medium">{user.nombre_completo}</td>
-                      <td className="p-3">{user.username}</td>
-                      <td className="p-3 text-muted-foreground">{user.email}</td>
-                      <td className="p-3">
+                      <td className="p-2 md:p-3 font-medium">{user.nombre_completo}</td>
+                      <td className="p-2 md:p-3">{user.username}</td>
+                      <td className="p-2 md:p-3 text-muted-foreground">{user.email}</td>
+                      <td className="p-2 md:p-3">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${user.nombre_rol === 'administrador' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
                           }`}>
                           {user.nombre_rol?.toUpperCase()}
                         </span>
                       </td>
-                      <td className="p-3">
+                      <td className="p-2 md:p-3">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
                           }`}>
                           {user.estado}
                         </span>
                       </td>
-                      <td className="p-3 flex justify-end gap-2">
-                        {/* Botón EDITAR conectado */}
-                        <Button variant="ghost" size="sm" onClick={() => setEditingUser(user)} className="text-primary hover:bg-primary/10">
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.id_usuario)} className="text-destructive hover:bg-destructive/10">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                      <td className="p-2 md:p-3">
+                        <div className="flex justify-end gap-2">
+                          {/* Botón EDITAR conectado */}
+                          <Button variant="ghost" size="sm" onClick={() => setEditingUser(user)} className="text-primary hover:bg-primary/10">
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.id_usuario)} className="text-destructive hover:bg-destructive/10">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -404,12 +407,41 @@ export function Administration() {
                 </tbody>
               </table>
             </div>
+            {/* Vista Móvil: Tarjetas apiladas */}
+            <div className="sm:hidden space-y-3">
+              {users.map((user) => (
+                <div key={user.id_usuario} className="bg-muted/30 rounded-lg p-3 border border-border/50">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{user.nombre_completo}</p>
+                      <p className="text-xs text-muted-foreground">@{user.username}</p>
+                    </div>
+                    <div className="flex gap-1 ml-3 shrink-0">
+                      <Button variant="ghost" size="icon-sm" onClick={() => setEditingUser(user)} className="text-primary hover:bg-primary/10"><Edit2 className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => handleDeleteUser(user.id_usuario)} className="text-destructive hover:bg-destructive/10"><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate mb-2">{user.email}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${user.nombre_rol === 'administrador' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {user.nombre_rol?.toUpperCase()}
+                    </span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${user.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                      {user.estado}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {users.length === 0 && (
+                <p className="text-center py-8 text-muted-foreground text-sm">No hay usuarios registrados.</p>
+              )}
+            </div>
           </Card>
         </TabsContent>
 
         {/* --- TAB TARIFAS --- */}
         <TabsContent value="rates" className="space-y-4">
-          <Card className="p-6 bg-card border border-border">
+          <Card className="p-4 md:p-6 bg-card border border-border">
             <h2 className="text-lg font-semibold mb-4">Agregar Nueva Tarifa</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <select
@@ -433,31 +465,57 @@ export function Administration() {
               <Button onClick={handleAddRate} className="bg-primary text-primary-foreground"><Plus className="mr-2 h-4 w-4" /> Agregar</Button>
             </div>
           </Card>
-          <Card className="p-6 bg-card border border-border">
+          <Card className="p-4 md:p-6 bg-card border border-border">
             <h2 className="text-lg font-semibold mb-4">Tarifas Vigentes</h2>
-            <div className="overflow-x-auto">
+            {/* Vista Desktop: Tabla */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
-                  <tr><th className="p-3">Vehículo</th><th className="p-3">Precio</th><th className="p-3">Estado</th><th className="p-3 text-right">Acciones</th></tr>
+                  <tr><th className="p-2 md:p-3">Vehículo</th><th className="p-2 md:p-3">Precio</th><th className="p-2 md:p-3">Estado</th><th className="p-2 md:p-3 text-right">Acciones</th></tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {rates.map(r => (
                     <tr key={r.id_tarifa} className="hover:bg-muted/50 transition-colors">
-                      <td className="p-3 font-medium">{r.tipo_vehiculo}</td>
-                      <td className="p-3 font-bold text-primary">S/. {Number(r.precio_hora).toFixed(2)}</td>
-                      <td className="p-3">
+                      <td className="p-2 md:p-3 font-medium">{r.tipo_vehiculo}</td>
+                      <td className="p-2 md:p-3 font-bold text-primary">S/. {Number(r.precio_hora).toFixed(2)}</td>
+                      <td className="p-2 md:p-3">
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                           {r.estado}
                         </span>
                       </td>
-                      <td className="p-3 text-right flex justify-end gap-2">
-                        <Button size="sm" variant="ghost" onClick={() => setEditingTarifa(r)} className="text-primary hover:bg-primary/10"><Edit2 className="h-4 w-4" /></Button>
-                        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRate(r.id_tarifa)}><Trash2 className="h-4 w-4" /></Button>
+                      <td className="p-2 md:p-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => setEditingTarifa(r)} className="text-primary hover:bg-primary/10"><Edit2 className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRate(r.id_tarifa)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+            {/* Vista Móvil: Tarjetas apiladas */}
+            <div className="sm:hidden space-y-3">
+              {rates.map(r => (
+                <div key={r.id_tarifa} className="flex items-center justify-between bg-muted/30 rounded-lg p-3 border border-border/50">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-sm">{r.tipo_vehiculo}</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        {r.estado}
+                      </span>
+                    </div>
+                    <p className="text-base font-bold text-primary">S/. {Number(r.precio_hora).toFixed(2)}</p>
+                  </div>
+                  <div className="flex gap-1 ml-3 shrink-0">
+                    <Button size="icon-sm" variant="ghost" onClick={() => setEditingTarifa(r)} className="text-primary hover:bg-primary/10"><Edit2 className="h-4 w-4" /></Button>
+                    <Button size="icon-sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRate(r.id_tarifa)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                </div>
+              ))}
+              {rates.length === 0 && (
+                <p className="text-center py-8 text-muted-foreground text-sm">No hay tarifas registradas.</p>
+              )}
             </div>
           </Card>
         </TabsContent>
@@ -468,11 +526,11 @@ export function Administration() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
-                  <tr><th className="p-3">Acción</th><th className="p-3">Usuario</th><th className="p-3">Detalle</th></tr>
+                  <tr><th className="p-2 md:p-3">Acción</th><th className="p-2 md:p-3">Usuario</th><th className="p-2 md:p-3">Detalle</th></tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {auditHistory.map(r => (
-                    <tr key={r.id} className="hover:bg-muted/50"><td className="p-3">{r.action}</td><td className="p-3">{r.user}</td><td className="p-3 text-muted-foreground">{r.ticketId}</td></tr>
+                    <tr key={r.id} className="hover:bg-muted/50"><td className="p-2 md:p-3">{r.action}</td><td className="p-2 md:p-3">{r.user}</td><td className="p-2 md:p-3 text-muted-foreground">{r.ticketId}</td></tr>
                   ))}
                 </tbody>
               </table>

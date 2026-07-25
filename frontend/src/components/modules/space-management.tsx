@@ -416,7 +416,7 @@ export function SpaceManagement() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
           Gestión de Espacios
         </h1>
         <p className="text-muted-foreground">

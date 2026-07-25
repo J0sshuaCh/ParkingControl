@@ -25,7 +25,7 @@ const occupancyData = [
   { time: "19:00", ocupacion: 40 },
 ]
 
-export function DashboardOverview() {
+export function DashboardOverview({ onNavigate }: { onNavigate?: (module: string) => void }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -96,17 +96,17 @@ export function DashboardOverview() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Panel de Control</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Panel de Control</h1>
             <p className="text-muted-foreground mt-1">Bienvenido a ParkingControl — Resumen en tiempo real</p>
           </div>
           <LiveIndicator />
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" className="gap-2 shadow-md">
-            <Plus className="w-4 h-4" />
-            Registrar Vehículo
-          </Button>
-        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <Button size="sm" className="gap-2 shadow-md w-full sm:w-auto" onClick={() => onNavigate?.("vehicles")}>
+                            <Plus className="w-4 h-4" />
+                            Registrar Vehículo
+                          </Button>
+                        </div>
       </div>
 
       {/* Stats Grid - Redesigned */}
