@@ -445,7 +445,7 @@ END$$
 DROP PROCEDURE IF EXISTS `sp_usuario_obtener_por_username` $$
 
 CREATE PROCEDURE `sp_usuario_obtener_por_username` (IN p_username VARCHAR(50)) BEGIN
-SELECT u.id_usuario, u.username, u.nombre_completo, u.email, u.estado, u.id_rol, r.nombre_rol
+SELECT u.id_usuario, u.username, u.password, u.nombre_completo, u.email, u.estado, u.id_rol, r.nombre_rol
 FROM usuario u
     JOIN rol r ON u.id_rol = r.id_rol
 WHERE

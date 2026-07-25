@@ -22,8 +22,6 @@ const ReporteModel = {
                 grafica: results[1]
             };
 
-module.exports = { ReporteModel };
-
         } catch (error) {
             console.error("Error en ReporteModel.generarReporteAvanzado:", error);
             throw error;
@@ -42,3 +40,5 @@ module.exports = { ReporteModel };
         }
     }
 };
+
+module.exports = { ReporteModel };
