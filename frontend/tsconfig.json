@@ -7,16 +7,19 @@
     "skipLibCheck": true,
     "esModuleInterop": true, // Cambiado a true para mejor compatibilidad en el ecosistema moderno
     "strict": true,
+    "ignoreDeprecations": "6.0",
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "node", // Modernizado de node10 a 'node'
+    "moduleResolution": "bundler", // Modernizado de node10 a 'bundler' para compatibilidad con Vite/ESNext
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "types": ["vite/client"]
-    // Se elimina baseUrl y paths por ser obsoletos o gestionables mejor con Vite/Webpack.
-    // Si son necesarios, se debe revisar la configuración de build (vite.config.js).
   },
   "include": ["src"]
 }
