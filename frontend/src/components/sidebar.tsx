@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Car, CreditCard, Grid3x3, Settings, ParkingCircle, LayoutDashboard, Clock, ChevronLeft, ChevronRight, Moon, Sun, BarChart3, FileText, Plus, Eye } from "lucide-react"
+import { Car, CreditCard, Grid3x3, Settings, ParkingCircle, LayoutDashboard, Clock, ChevronLeft, ChevronRight, Moon, Sun, Monitor, BarChart3, FileText, Plus, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useTheme } from "@/components/theme-provider"
 import { toast } from "sonner"
 import { registrarEntrada, verificarPlaca } from "@/services/vehiculoService"
@@ -85,15 +85,15 @@ export function Sidebar({ activeModule, onModuleChange, userRole }: SidebarProps
     >
       {/* Encabezado del Sidebar */}
       <div className={`p-6 border-b border-border flex items-center ${isCollapsed ? "justify-center" : "gap-3"}`}>
-        <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
+        <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/75 rounded-xl flex items-center justify-center shadow-lg shadow-primary/10 flex-shrink-0">
           <ParkingCircle className="w-6 h-6 text-primary-foreground" />
         </div>
 
         {/* Texto del logo */}
         {!isCollapsed && (
           <div className="overflow-hidden animate-in fade-in duration-300">
-            <h1 className="font-bold text-lg truncate bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">ParkingControl</h1>
-            <p className="text-xs text-muted-foreground truncate">Sistema de Gestión</p>
+            <h1 className="font-bold text-lg text-foreground">ParkingControl</h1>
+            <p className="text-xs text-muted-foreground truncate">Tu estacionamiento</p>
           </div>
         )}
       </div>
@@ -171,16 +171,20 @@ export function Sidebar({ activeModule, onModuleChange, userRole }: SidebarProps
       <div className="p-4 border-t border-border flex flex-col gap-2 justify-center">
 
         {/* Selector de Modo de Tema */}
-        <Select value={theme} onValueChange={(v) => setTheme(v as any)}>
-          <SelectTrigger className="w-full justify-start px-0 gap-3">
-            <div className={`flex items-center w-full ${isCollapsed ? "justify-center" : "px-4 gap-3"}`}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`w-full ${isCollapsed ? "justify-center px-0" : "justify-start gap-3 px-4"}`}
+            >
               {appliedTheme === "light" ? (
                 <Sun className="w-5 h-5 text-orange-500" />
               ) : (
                 <Moon className="w-5 h-5 text-blue-400" />
               )}
               {!isCollapsed && (
-                <span className="text-sm truncate animate-in fade-in duration-200">
+                <span className="text-sm truncate">
                   {theme === "system"
                     ? "Sistema"
                     : theme === "light"
@@ -189,14 +193,20 @@ export function Sidebar({ activeModule, onModuleChange, userRole }: SidebarProps
                   }
                 </span>
               )}
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="light">Modo Claro</SelectItem>
-            <SelectItem value="dark">Modo Oscuro</SelectItem>
-            <SelectItem value="system">Sistema</SelectItem>
-          </SelectContent>
-        </Select>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="top" className="w-40">
+            <DropdownMenuItem onClick={() => setTheme("light")}>
+              <Sun className="w-4 h-4 text-orange-500" /> Modo Claro
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("dark")}>
+              <Moon className="w-4 h-4 text-blue-400" /> Modo Oscuro
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("system")}>
+              <Monitor className="w-4 h-4 text-muted-foreground" /> Sistema
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Toggle Alto Contraste */}
         <Button
